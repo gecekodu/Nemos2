@@ -8,6 +8,10 @@ enum SocialStyle { tekKisilik, arkadaslarla }
 
 enum WorldTheme { fantastik, bilimKurgu }
 
+enum SkillLevel { baslangic, orta, uzman }
+
+enum SessionLength { cokKisa, kisa, orta, uzun }
+
 enum FeedReaction { begeni, favori, ates }
 
 extension GameModeX on GameMode {
@@ -44,6 +48,23 @@ extension WorldThemeX on WorldTheme {
       };
 }
 
+extension SkillLevelX on SkillLevel {
+  String get label => switch (this) {
+        SkillLevel.baslangic => 'Başlangıç',
+        SkillLevel.orta => 'Orta',
+        SkillLevel.uzman => 'Uzman',
+      };
+}
+
+extension SessionLengthX on SessionLength {
+  String get label => switch (this) {
+        SessionLength.cokKisa => '5-10 dk',
+        SessionLength.kisa => '10-20 dk',
+        SessionLength.orta => '20-30 dk',
+        SessionLength.uzun => '30+ dk',
+      };
+}
+
 @immutable
 class BuilderSelection {
   const BuilderSelection({
@@ -51,27 +72,40 @@ class BuilderSelection {
     this.tempo,
     this.socialStyle,
     this.theme,
+    this.skillLevel,
+    this.sessionLength,
   });
 
   final GameMode? mode;
   final GameTempo? tempo;
   final SocialStyle? socialStyle;
   final WorldTheme? theme;
+  final SkillLevel? skillLevel;
+  final SessionLength? sessionLength;
 
   bool get isComplete =>
-      mode != null && tempo != null && socialStyle != null && theme != null;
+      mode != null &&
+      tempo != null &&
+      socialStyle != null &&
+      theme != null &&
+      skillLevel != null &&
+      sessionLength != null;
 
   BuilderSelection copyWith({
     GameMode? mode,
     GameTempo? tempo,
     SocialStyle? socialStyle,
     WorldTheme? theme,
+    SkillLevel? skillLevel,
+    SessionLength? sessionLength,
   }) {
     return BuilderSelection(
       mode: mode ?? this.mode,
       tempo: tempo ?? this.tempo,
       socialStyle: socialStyle ?? this.socialStyle,
       theme: theme ?? this.theme,
+      skillLevel: skillLevel ?? this.skillLevel,
+      sessionLength: sessionLength ?? this.sessionLength,
     );
   }
 }
@@ -87,6 +121,8 @@ class GameProfile {
     required this.tempo,
     required this.socialStyle,
     required this.theme,
+    required this.skillLevel,
+    required this.sessionLength,
     required this.tags,
     required this.likes,
     required this.comments,
@@ -101,6 +137,8 @@ class GameProfile {
   final GameTempo tempo;
   final SocialStyle socialStyle;
   final WorldTheme theme;
+  final SkillLevel skillLevel;
+  final SessionLength sessionLength;
   final List<String> tags;
   final int likes;
   final int comments;

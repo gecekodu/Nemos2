@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 
 import '../../data/mock_game_repository.dart';
-import '../controllers/builder_controller.dart';
 import '../../domain/game_models.dart';
+import '../controllers/builder_controller.dart';
 
 class MainShellScreen extends StatefulWidget {
   const MainShellScreen({
@@ -42,11 +42,26 @@ class _MainShellScreenState extends State<MainShellScreen> {
         selectedIndex: currentIndex,
         onDestinationSelected: (value) => setState(() => currentIndex = value),
         destinations: const [
-          NavigationDestination(icon: Icon(Icons.home_outlined), label: 'Ana Sayfa'),
-          NavigationDestination(icon: Icon(Icons.play_circle_outline), label: 'Keşfet'),
-          NavigationDestination(icon: Icon(Icons.auto_awesome_outlined), label: 'Oluştur'),
-          NavigationDestination(icon: Icon(Icons.emoji_events_outlined), label: 'Liderlik'),
-          NavigationDestination(icon: Icon(Icons.person_outline), label: 'Profil'),
+          NavigationDestination(
+            icon: Icon(Icons.home_outlined),
+            label: 'Ana Sayfa',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.play_circle_outline),
+            label: 'Keşfet',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.auto_awesome_outlined),
+            label: 'Oluştur',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.emoji_events_outlined),
+            label: 'Liderlik',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.person_outline),
+            label: 'Profil',
+          ),
         ],
       ),
     );
@@ -68,7 +83,7 @@ class _HomeTab extends StatelessWidget {
         Text('Nemos', style: theme.textTheme.headlineMedium),
         const SizedBox(height: 8),
         Text(
-          'Türkçe sosyal oyun keşif uygulamasının ilk profesyonel Flutter temeli.',
+          'Türkçe sosyal oyun keşif uygulamasının güçlü Flutter temeli.',
           style: theme.textTheme.bodyLarge,
         ),
         const SizedBox(height: 20),
@@ -78,17 +93,20 @@ class _HomeTab extends StatelessWidget {
             children: [
               Text('Ürün özeti', style: theme.textTheme.titleLarge),
               const SizedBox(height: 12),
-              _Bullet(text: '100 seçim ihtimali için kurgulanmış oyun oluşturma akışı'),
-              _Bullet(text: '20 oyunluk başlangıç kütüphanesi ve editoryal eşleme sistemi'),
-              _Bullet(text: 'TikTok/Reels tarzı kaydırmalı keşfet ekranı yaklaşımı'),
-              _Bullet(text: 'Arkadaşlık sistemi, yorum, beğeni ve liderlik kurgusu'),
+              _Bullet(text: '6 adımlı oyun oluşturma akışı ve kişisel eşleşme'),
+              _Bullet(
+                  text: '20 oyunluk başlangıç kütüphanesi ve akıllı eşleme'),
+              _Bullet(text: 'TikTok/Reels tarzı kaydırmalı keşfet deneyimi'),
+              _Bullet(text: 'Arkadaşlık, yorum, beğeni ve liderlik kurgusu'),
             ],
           ),
         ),
         const SizedBox(height: 16),
         Text('Öne çıkan oyunlar', style: theme.textTheme.titleLarge),
         const SizedBox(height: 12),
-        ...repository.featuredGames.take(3).map((game) => _GameListCard(game: game)),
+        ...repository.featuredGames
+            .take(3)
+            .map((game) => _GameListCard(game: game)),
       ],
     );
   }
@@ -115,7 +133,10 @@ class _DiscoverTab extends StatelessWidget {
                 Row(
                   children: [
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 6,
+                      ),
                       decoration: BoxDecoration(
                         color: Colors.white.withValues(alpha: 0.12),
                         borderRadius: BorderRadius.circular(30),
@@ -127,21 +148,31 @@ class _DiscoverTab extends StatelessWidget {
                   ],
                 ),
                 const Spacer(),
-                Text(game.title, style: Theme.of(context).textTheme.headlineMedium),
+                Text(game.title,
+                    style: Theme.of(context).textTheme.headlineMedium),
                 const SizedBox(height: 8),
-                Text(game.shortDescription, style: Theme.of(context).textTheme.bodyLarge),
+                Text(
+                  game.shortDescription,
+                  style: Theme.of(context).textTheme.bodyLarge,
+                ),
                 const SizedBox(height: 12),
                 Wrap(
                   spacing: 8,
                   runSpacing: 8,
-                  children: game.tags.map((tag) => Chip(label: Text(tag))).toList(),
+                  children:
+                      game.tags.map((tag) => Chip(label: Text(tag))).toList(),
                 ),
                 const SizedBox(height: 20),
                 Row(
                   children: [
-                    _StatColumn(icon: Icons.favorite_border, value: '${game.likes}'),
-                    _StatColumn(icon: Icons.mode_comment_outlined, value: '${game.comments}'),
-                    _StatColumn(icon: Icons.whatshot_outlined, value: '${game.score}'),
+                    _StatColumn(
+                        icon: Icons.favorite_border, value: '${game.likes}'),
+                    _StatColumn(
+                      icon: Icons.mode_comment_outlined,
+                      value: '${game.comments}',
+                    ),
+                    _StatColumn(
+                        icon: Icons.whatshot_outlined, value: '${game.score}'),
                     const Spacer(),
                     FilledButton.icon(
                       onPressed: () {},
@@ -168,26 +199,73 @@ class _BuildTab extends StatelessWidget {
   final MockGameRepository repository;
   final BuilderController controller;
 
+  int _selectedStepCount(BuilderSelection selection) {
+    var count = 0;
+    if (selection.mode != null) count++;
+    if (selection.tempo != null) count++;
+    if (selection.socialStyle != null) count++;
+    if (selection.theme != null) count++;
+    if (selection.skillLevel != null) count++;
+    if (selection.sessionLength != null) count++;
+    return count;
+  }
+
+  List<String> _selectionSummary(BuilderSelection selection) {
+    final chips = <String>[];
+    if (selection.mode != null) chips.add(selection.mode!.label);
+    if (selection.tempo != null) chips.add(selection.tempo!.label);
+    if (selection.socialStyle != null) chips.add(selection.socialStyle!.label);
+    if (selection.theme != null) chips.add(selection.theme!.label);
+    if (selection.skillLevel != null) chips.add(selection.skillLevel!.label);
+    if (selection.sessionLength != null) {
+      chips.add(selection.sessionLength!.label);
+    }
+    return chips;
+  }
+
   @override
   Widget build(BuildContext context) {
+    const totalSteps = 6;
+
     return AnimatedBuilder(
       animation: controller,
       builder: (context, _) {
         final selection = controller.selection;
         final generated = controller.generated;
+        final isComplete = selection.isComplete;
+        final selectedCount = _selectedStepCount(selection);
+        final summary = _selectionSummary(selection);
 
         return ListView(
           padding: const EdgeInsets.all(20),
           children: [
-            Text('Oyununu oluştur', style: Theme.of(context).textTheme.headlineMedium),
+            Text(
+              'Oyununu oluştur',
+              style: Theme.of(context).textTheme.headlineMedium,
+            ),
             const SizedBox(height: 8),
             Text(
-              '${repository.totalPossibilityCount} ihtimal içinden sana en uygun oyunu getiriyoruz.',
+              '${repository.totalPossibilityCount} ihtimal içinden sana en uygun oyunu buluyoruz.',
               style: Theme.of(context).textTheme.bodyLarge,
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: 16),
+            _BuilderProgressCard(
+              selectedStepCount: selectedCount,
+              totalStepCount: totalSteps,
+            ),
+            if (summary.isNotEmpty) ...[
+              const SizedBox(height: 12),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children:
+                    summary.map((item) => Chip(label: Text(item))).toList(),
+              ),
+            ],
+            const SizedBox(height: 16),
             _SectionCard(
               title: '1. Oyun modu',
+              subtitle: 'Ne tür bir deneyim arıyorsun?',
               child: Wrap(
                 spacing: 8,
                 runSpacing: 8,
@@ -204,6 +282,7 @@ class _BuildTab extends StatelessWidget {
             ),
             _SectionCard(
               title: '2. Tempo',
+              subtitle: 'Ritmi nasıl olsun?',
               child: Wrap(
                 spacing: 8,
                 runSpacing: 8,
@@ -220,6 +299,7 @@ class _BuildTab extends StatelessWidget {
             ),
             _SectionCard(
               title: '3. Sosyal stil',
+              subtitle: 'Tek başına mı, arkadaşlarla mı?',
               child: Wrap(
                 spacing: 8,
                 runSpacing: 8,
@@ -236,6 +316,7 @@ class _BuildTab extends StatelessWidget {
             ),
             _SectionCard(
               title: '4. Dünya teması',
+              subtitle: 'Hangi atmosfer sana daha yakın?',
               child: Wrap(
                 spacing: 8,
                 runSpacing: 8,
@@ -250,24 +331,83 @@ class _BuildTab extends StatelessWidget {
                     .toList(),
               ),
             ),
+            _SectionCard(
+              title: '5. Zorluk seviyesi',
+              subtitle: 'Ne kadar meydan okuma istiyorsun?',
+              child: Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: SkillLevel.values
+                    .map(
+                      (skillLevel) => ChoiceChip(
+                        label: Text(skillLevel.label),
+                        selected: selection.skillLevel == skillLevel,
+                        onSelected: (_) =>
+                            controller.selectSkillLevel(skillLevel),
+                      ),
+                    )
+                    .toList(),
+              ),
+            ),
+            _SectionCard(
+              title: '6. Oturum süresi',
+              subtitle: 'Bir seferde ne kadar oynamak istersin?',
+              child: Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: SessionLength.values
+                    .map(
+                      (sessionLength) => ChoiceChip(
+                        label: Text(sessionLength.label),
+                        selected: selection.sessionLength == sessionLength,
+                        onSelected: (_) =>
+                            controller.selectSessionLength(sessionLength),
+                      ),
+                    )
+                    .toList(),
+              ),
+            ),
             if (generated != null) ...[
               const SizedBox(height: 8),
               _GradientCard(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Sana özel seçilen oyun', style: Theme.of(context).textTheme.titleLarge),
+                    Text(
+                      isComplete
+                          ? 'Sana özel seçilen oyun'
+                          : 'Şu ana kadar en uyumlu oyun',
+                      style: Theme.of(context).textTheme.titleLarge,
+                    ),
                     const SizedBox(height: 12),
-                    Text(generated.title, style: Theme.of(context).textTheme.headlineMedium),
+                    Text(
+                      generated.title,
+                      style: Theme.of(context).textTheme.headlineMedium,
+                    ),
                     const SizedBox(height: 8),
-                    Text(generated.shortDescription, style: Theme.of(context).textTheme.bodyLarge),
+                    Text(
+                      generated.shortDescription,
+                      style: Theme.of(context).textTheme.bodyLarge,
+                    ),
                     const SizedBox(height: 12),
-                    Text(generated.experience, style: Theme.of(context).textTheme.bodyMedium),
+                    Text(
+                      generated.experience,
+                      style: Theme.of(context).textTheme.bodyMedium,
+                    ),
+                    if (!isComplete) ...[
+                      const SizedBox(height: 12),
+                      Text(
+                        'Tüm adımları tamamladığında eşleşme daha da netleşir.',
+                        style: Theme.of(context).textTheme.bodyMedium,
+                      ),
+                    ],
                     const SizedBox(height: 16),
                     Wrap(
                       spacing: 8,
                       runSpacing: 8,
-                      children: generated.tags.map((tag) => Chip(label: Text(tag))).toList(),
+                      children: generated.tags
+                          .map((tag) => Chip(label: Text(tag)))
+                          .toList(),
                     ),
                     const SizedBox(height: 16),
                     Row(
@@ -308,7 +448,10 @@ class _LeaderboardTab extends StatelessWidget {
     return ListView(
       padding: const EdgeInsets.all(20),
       children: [
-        Text('Liderlik sıralaması', style: Theme.of(context).textTheme.headlineMedium),
+        Text(
+          'Liderlik sıralaması',
+          style: Theme.of(context).textTheme.headlineMedium,
+        ),
         const SizedBox(height: 12),
         ...repository.leaderboard.map(
           (entry) => Card(
@@ -335,20 +478,27 @@ class _ProfileTab extends StatelessWidget {
     return ListView(
       padding: const EdgeInsets.all(20),
       children: [
-        Text('Profil ve arkadaşlar', style: Theme.of(context).textTheme.headlineMedium),
+        Text(
+          'Profil ve arkadaşlar',
+          style: Theme.of(context).textTheme.headlineMedium,
+        ),
         const SizedBox(height: 12),
-        _GradientCard(
+        const _GradientCard(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('nemos_user', style: TextStyle(fontSize: 24, fontWeight: FontWeight.w800)),
+              Text(
+                'nemos_user',
+                style: TextStyle(fontSize: 24, fontWeight: FontWeight.w800),
+              ),
               SizedBox(height: 8),
               Text('Seviye 12 • 4 gündür aktif • 3 oyun favoride'),
             ],
           ),
         ),
         const SizedBox(height: 16),
-        Text('Arkadaşlık sistemi', style: Theme.of(context).textTheme.titleLarge),
+        Text('Arkadaşlık sistemi',
+            style: Theme.of(context).textTheme.titleLarge),
         const SizedBox(height: 8),
         ...repository.friends.map(
           (friend) => Card(
@@ -387,10 +537,63 @@ class _GradientCard extends StatelessWidget {
   }
 }
 
+class _BuilderProgressCard extends StatelessWidget {
+  const _BuilderProgressCard({
+    required this.selectedStepCount,
+    required this.totalStepCount,
+  });
+
+  final int selectedStepCount;
+  final int totalStepCount;
+
+  @override
+  Widget build(BuildContext context) {
+    final progress = selectedStepCount / totalStepCount;
+
+    return Card(
+      margin: EdgeInsets.zero,
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Text(
+                  'İlerleme',
+                  style: Theme.of(context).textTheme.titleMedium,
+                ),
+                const Spacer(),
+                Text(
+                  '$selectedStepCount/$totalStepCount adım',
+                  style: Theme.of(context).textTheme.bodyMedium,
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(12),
+              child: LinearProgressIndicator(
+                value: progress,
+                minHeight: 10,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class _SectionCard extends StatelessWidget {
-  const _SectionCard({required this.title, required this.child});
+  const _SectionCard({
+    required this.title,
+    required this.subtitle,
+    required this.child,
+  });
 
   final String title;
+  final String subtitle;
   final Widget child;
 
   @override
@@ -403,6 +606,8 @@ class _SectionCard extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(title, style: Theme.of(context).textTheme.titleMedium),
+            const SizedBox(height: 4),
+            Text(subtitle, style: Theme.of(context).textTheme.bodyMedium),
             const SizedBox(height: 12),
             child,
           ],

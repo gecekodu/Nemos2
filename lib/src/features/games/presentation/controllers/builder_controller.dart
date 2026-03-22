@@ -34,6 +34,16 @@ class BuilderController extends ChangeNotifier {
     _refresh();
   }
 
+  void selectSkillLevel(SkillLevel skillLevel) {
+    _selection = _selection.copyWith(skillLevel: skillLevel);
+    _refresh();
+  }
+
+  void selectSessionLength(SessionLength sessionLength) {
+    _selection = _selection.copyWith(sessionLength: sessionLength);
+    _refresh();
+  }
+
   void reset() {
     _selection = const BuilderSelection();
     _generated = null;
@@ -41,7 +51,14 @@ class BuilderController extends ChangeNotifier {
   }
 
   void _refresh() {
-    if (_selection.isComplete) {
+    if (_selection.mode == null &&
+        _selection.tempo == null &&
+        _selection.socialStyle == null &&
+        _selection.theme == null &&
+        _selection.skillLevel == null &&
+        _selection.sessionLength == null) {
+      _generated = null;
+    } else {
       _generated = _repository.generateForSelection(_selection);
     }
     notifyListeners();
