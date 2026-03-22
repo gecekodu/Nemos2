@@ -34,7 +34,7 @@ class _NemosAppState extends State<NemosApp> {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'Nemos',
-      theme: AppTheme.dark(),
+      theme: AppTheme.light(),
       home: MainShellScreen(
         repository: repository,
         builderController: builderController,

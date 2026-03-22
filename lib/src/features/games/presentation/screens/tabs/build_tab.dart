@@ -18,9 +18,7 @@ class BuildTab extends StatelessWidget {
 
   void _openGame(BuildContext context, GameProfile game) {
     Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => GamePlayerScreen(game: game),
-      ),
+      MaterialPageRoute(builder: (_) => GamePlayerScreen(game: game)),
     );
   }
 
@@ -36,16 +34,14 @@ class BuildTab extends StatelessWidget {
   }
 
   List<String> _selectionSummary(BuilderSelection selection) {
-    final chips = <String>[];
-    if (selection.mode != null) chips.add(selection.mode!.label);
-    if (selection.tempo != null) chips.add(selection.tempo!.label);
-    if (selection.socialStyle != null) chips.add(selection.socialStyle!.label);
-    if (selection.theme != null) chips.add(selection.theme!.label);
-    if (selection.skillLevel != null) chips.add(selection.skillLevel!.label);
-    if (selection.sessionLength != null) {
-      chips.add(selection.sessionLength!.label);
-    }
-    return chips;
+    return [
+      if (selection.mode != null) selection.mode!.label,
+      if (selection.tempo != null) selection.tempo!.label,
+      if (selection.socialStyle != null) selection.socialStyle!.label,
+      if (selection.theme != null) selection.theme!.label,
+      if (selection.skillLevel != null) selection.skillLevel!.label,
+      if (selection.sessionLength != null) selection.sessionLength!.label,
+    ];
   }
 
   @override
@@ -61,201 +57,204 @@ class BuildTab extends StatelessWidget {
         final selectedCount = _selectedStepCount(selection);
         final summary = _selectionSummary(selection);
 
-        return ListView(
-          padding: const EdgeInsets.all(20),
-          children: [
-            Text(
-              'Oyununu oluştur',
-              style: Theme.of(context).textTheme.headlineMedium,
+        return CustomScrollView(
+          slivers: [
+            SliverAppBar(
+              floating: true,
+              snap: true,
+              title: const Text('Oyun Oluştur'),
+              backgroundColor: Theme.of(context).scaffoldBackgroundColor,
             ),
-            const SizedBox(height: 8),
-            Text(
-              '${repository.totalPossibilityCount} ihtimal içinden sana en uygun oyunu buluyoruz.',
-              style: Theme.of(context).textTheme.bodyLarge,
-            ),
-            const SizedBox(height: 16),
-            _BuilderProgressCard(
-              selectedStepCount: selectedCount,
-              totalStepCount: totalSteps,
-            ),
-            if (summary.isNotEmpty) ...[
-              const SizedBox(height: 12),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children:
-                    summary.map((item) => Chip(label: Text(item))).toList(),
-              ),
-            ],
-            const SizedBox(height: 16),
-            _SectionCard(
-              title: '1. Oyun modu',
-              subtitle: 'Ne tür bir deneyim arıyorsun?',
-              child: Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: GameMode.values
-                    .map(
-                      (mode) => ChoiceChip(
-                        label: Text(mode.label),
-                        selected: selection.mode == mode,
-                        onSelected: (_) => controller.selectMode(mode),
-                      ),
-                    )
-                    .toList(),
-              ),
-            ),
-            _SectionCard(
-              title: '2. Tempo',
-              subtitle: 'Ritmi nasıl olsun?',
-              child: Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: GameTempo.values
-                    .map(
-                      (tempo) => ChoiceChip(
-                        label: Text(tempo.label),
-                        selected: selection.tempo == tempo,
-                        onSelected: (_) => controller.selectTempo(tempo),
-                      ),
-                    )
-                    .toList(),
-              ),
-            ),
-            _SectionCard(
-              title: '3. Sosyal stil',
-              subtitle: 'Tek başına mı, arkadaşlarla mı?',
-              child: Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: SocialStyle.values
-                    .map(
-                      (style) => ChoiceChip(
-                        label: Text(style.label),
-                        selected: selection.socialStyle == style,
-                        onSelected: (_) => controller.selectSocialStyle(style),
-                      ),
-                    )
-                    .toList(),
-              ),
-            ),
-            _SectionCard(
-              title: '4. Dünya teması',
-              subtitle: 'Hangi atmosfer sana daha yakın?',
-              child: Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: WorldTheme.values
-                    .map(
-                      (theme) => ChoiceChip(
-                        label: Text(theme.label),
-                        selected: selection.theme == theme,
-                        onSelected: (_) => controller.selectTheme(theme),
-                      ),
-                    )
-                    .toList(),
-              ),
-            ),
-            _SectionCard(
-              title: '5. Zorluk seviyesi',
-              subtitle: 'Ne kadar meydan okuma istiyorsun?',
-              child: Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: SkillLevel.values
-                    .map(
-                      (skillLevel) => ChoiceChip(
-                        label: Text(skillLevel.label),
-                        selected: selection.skillLevel == skillLevel,
-                        onSelected: (_) =>
-                            controller.selectSkillLevel(skillLevel),
-                      ),
-                    )
-                    .toList(),
-              ),
-            ),
-            _SectionCard(
-              title: '6. Oturum süresi',
-              subtitle: 'Bir seferde ne kadar oynamak istersin?',
-              child: Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: SessionLength.values
-                    .map(
-                      (sessionLength) => ChoiceChip(
-                        label: Text(sessionLength.label),
-                        selected: selection.sessionLength == sessionLength,
-                        onSelected: (_) =>
-                            controller.selectSessionLength(sessionLength),
-                      ),
-                    )
-                    .toList(),
-              ),
-            ),
-            if (generated != null) ...[
-              const SizedBox(height: 8),
-              GradientCard(
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(20, 0, 20, 0),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      isComplete
-                          ? 'Sana özel seçilen oyun'
-                          : 'Şu ana kadar en uyumlu oyun',
-                      style: Theme.of(context).textTheme.titleLarge,
-                    ),
-                    const SizedBox(height: 12),
-                    Text(
-                      generated.title,
-                      style: Theme.of(context).textTheme.headlineMedium,
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      generated.shortDescription,
+                      '${repository.totalPossibilityCount} ihtimal içinden sana en uygun oyunu buluyoruz.',
                       style: Theme.of(context).textTheme.bodyLarge,
                     ),
-                    const SizedBox(height: 12),
-                    Text(
-                      generated.experience,
-                      style: Theme.of(context).textTheme.bodyMedium,
-                    ),
-                    if (!isComplete) ...[
+                    const SizedBox(height: 16),
+                    // Progress card
+                    _ProgressCard(selectedCount: selectedCount, totalSteps: totalSteps),
+                    if (summary.isNotEmpty) ...[
                       const SizedBox(height: 12),
-                      Text(
-                        'Tüm adımları tamamladığında eşleşme daha da netleşir.',
-                        style: Theme.of(context).textTheme.bodyMedium,
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: summary.map((item) => Chip(label: Text(item))).toList(),
                       ),
                     ],
                     const SizedBox(height: 16),
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
-                      children: generated.tags
-                          .map((tag) => Chip(label: Text(tag)))
-                          .toList(),
+                    _StepCard(
+                      step: 1,
+                      title: 'Oyun modu',
+                      subtitle: 'Ne tür bir deneyim arıyorsun?',
+                      child: Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: GameMode.values.map((mode) => ChoiceChip(
+                          label: Text(mode.label),
+                          selected: selection.mode == mode,
+                          onSelected: (_) => controller.selectMode(mode),
+                        )).toList(),
+                      ),
                     ),
-                    const SizedBox(height: 16),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: OutlinedButton(
-                            onPressed: controller.reset,
-                            child: const Text('Seçimi sıfırla'),
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: FilledButton(
-                            onPressed: () => _openGame(context, generated),
-                            child: const Text('Oyunu göster'),
-                          ),
-                        ),
-                      ],
+                    _StepCard(
+                      step: 2,
+                      title: 'Tempo',
+                      subtitle: 'Ritmi nasıl olsun?',
+                      child: Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: GameTempo.values.map((tempo) => ChoiceChip(
+                          label: Text(tempo.label),
+                          selected: selection.tempo == tempo,
+                          onSelected: (_) => controller.selectTempo(tempo),
+                        )).toList(),
+                      ),
                     ),
+                    _StepCard(
+                      step: 3,
+                      title: 'Sosyal stil',
+                      subtitle: 'Tek başına mı, arkadaşlarla mı?',
+                      child: Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: SocialStyle.values.map((style) => ChoiceChip(
+                          label: Text(style.label),
+                          selected: selection.socialStyle == style,
+                          onSelected: (_) => controller.selectSocialStyle(style),
+                        )).toList(),
+                      ),
+                    ),
+                    _StepCard(
+                      step: 4,
+                      title: 'Dünya teması',
+                      subtitle: 'Hangi atmosfer sana daha yakın?',
+                      child: Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: WorldTheme.values.map((t) => ChoiceChip(
+                          label: Text(t.label),
+                          selected: selection.theme == t,
+                          onSelected: (_) => controller.selectTheme(t),
+                        )).toList(),
+                      ),
+                    ),
+                    _StepCard(
+                      step: 5,
+                      title: 'Zorluk seviyesi',
+                      subtitle: 'Ne kadar meydan okuma istiyorsun?',
+                      child: Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: SkillLevel.values.map((sl) => ChoiceChip(
+                          label: Text(sl.label),
+                          selected: selection.skillLevel == sl,
+                          onSelected: (_) => controller.selectSkillLevel(sl),
+                        )).toList(),
+                      ),
+                    ),
+                    _StepCard(
+                      step: 6,
+                      title: 'Oturum süresi',
+                      subtitle: 'Bir seferde ne kadar oynamak istersin?',
+                      child: Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: SessionLength.values.map((sl) => ChoiceChip(
+                          label: Text(sl.label),
+                          selected: selection.sessionLength == sl,
+                          onSelected: (_) => controller.selectSessionLength(sl),
+                        )).toList(),
+                      ),
+                    ),
+                    // Match result card
+                    if (generated != null) ...[
+                      const SizedBox(height: 8),
+                      GradientCard(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                const Text('✨', style: TextStyle(fontSize: 20)),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: Text(
+                                    isComplete ? 'Sana Özel Seçilen Oyun' : 'En Uyumlu Oyun',
+                                    style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 16),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 12),
+                            Text(generated.title, style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.w900)),
+                            const SizedBox(height: 6),
+                            Text(generated.shortDescription, style: const TextStyle(color: Colors.white70, fontSize: 14, height: 1.4)),
+                            const SizedBox(height: 8),
+                            Text(generated.experience, style: const TextStyle(color: Colors.white60, fontSize: 13, height: 1.4)),
+                            if (!isComplete) ...[
+                              const SizedBox(height: 8),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                decoration: BoxDecoration(
+                                  color: Colors.white.withValues(alpha: 0.15),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: const Text(
+                                  '💡 Tüm adımları tamamlayınca eşleşme daha da netleşir.',
+                                  style: TextStyle(color: Colors.white, fontSize: 12),
+                                ),
+                              ),
+                            ],
+                            const SizedBox(height: 16),
+                            Wrap(
+                              spacing: 6,
+                              runSpacing: 6,
+                              children: generated.tags
+                                  .map((t) => Chip(
+                                        label: Text(t, style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w600)),
+                                        backgroundColor: Colors.white.withValues(alpha: 0.2),
+                                        side: BorderSide.none,
+                                        visualDensity: VisualDensity.compact,
+                                      ))
+                                  .toList(),
+                            ),
+                            const SizedBox(height: 16),
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: OutlinedButton(
+                                    onPressed: controller.reset,
+                                    style: OutlinedButton.styleFrom(
+                                      foregroundColor: Colors.white,
+                                      side: const BorderSide(color: Colors.white54),
+                                    ),
+                                    child: const Text('Sıfırla'),
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: FilledButton(
+                                    onPressed: () => _openGame(context, generated),
+                                    style: FilledButton.styleFrom(backgroundColor: Colors.white, foregroundColor: const Color(0xFF6366F1)),
+                                    child: const Text('Oyna'),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                    const SizedBox(height: 24),
                   ],
                 ),
               ),
-            ],
+            ),
           ],
         );
       },
@@ -263,81 +262,100 @@ class BuildTab extends StatelessWidget {
   }
 }
 
-class _BuilderProgressCard extends StatelessWidget {
-  const _BuilderProgressCard({
-    required this.selectedStepCount,
-    required this.totalStepCount,
-  });
+class _ProgressCard extends StatelessWidget {
+  const _ProgressCard({required this.selectedCount, required this.totalSteps});
 
-  final int selectedStepCount;
-  final int totalStepCount;
+  final int selectedCount;
+  final int totalSteps;
 
   @override
   Widget build(BuildContext context) {
-    final progress = selectedStepCount / totalStepCount;
+    final progress = selectedCount / totalSteps;
+    final theme = Theme.of(context);
 
-    return Card(
-      margin: EdgeInsets.zero,
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Text(
-                  'İlerleme',
-                  style: Theme.of(context).textTheme.titleMedium,
-                ),
-                const Spacer(),
-                Text(
-                  '$selectedStepCount/$totalStepCount adım',
-                  style: Theme.of(context).textTheme.bodyMedium,
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            ClipRRect(
-              borderRadius: BorderRadius.circular(12),
-              child: LinearProgressIndicator(
-                value: progress,
-                minHeight: 10,
-              ),
-            ),
-          ],
-        ),
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: theme.cardColor,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: theme.dividerColor),
+      ),
+      child: Column(
+        children: [
+          Row(
+            children: [
+              Text('İlerleme', style: theme.textTheme.titleMedium),
+              const Spacer(),
+              Text('$selectedCount / $totalSteps adım', style: theme.textTheme.bodyMedium),
+            ],
+          ),
+          const SizedBox(height: 10),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(10),
+            child: LinearProgressIndicator(value: progress, minHeight: 8),
+          ),
+        ],
       ),
     );
   }
 }
 
-class _SectionCard extends StatelessWidget {
-  const _SectionCard({
+class _StepCard extends StatelessWidget {
+  const _StepCard({
+    required this.step,
     required this.title,
     required this.subtitle,
     required this.child,
   });
 
+  final int step;
   final String title;
   final String subtitle;
   final Widget child;
 
   @override
   Widget build(BuildContext context) {
-    return Card(
+    final theme = Theme.of(context);
+
+    return Container(
       margin: const EdgeInsets.only(bottom: 12),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(title, style: Theme.of(context).textTheme.titleMedium),
-            const SizedBox(height: 4),
-            Text(subtitle, style: Theme.of(context).textTheme.bodyMedium),
-            const SizedBox(height: 12),
-            child,
-          ],
-        ),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: theme.cardColor,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: theme.dividerColor),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 28,
+                height: 28,
+                decoration: BoxDecoration(
+                  color: theme.primaryColor.withValues(alpha: 0.12),
+                  shape: BoxShape.circle,
+                ),
+                child: Center(
+                  child: Text('$step', style: TextStyle(color: theme.primaryColor, fontWeight: FontWeight.w900, fontSize: 13)),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(title, style: theme.textTheme.titleMedium),
+                    Text(subtitle, style: theme.textTheme.bodyMedium),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          child,
+        ],
       ),
     );
   }
