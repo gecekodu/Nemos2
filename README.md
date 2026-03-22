@@ -16,6 +16,7 @@ Nemos, kullanıcıya seçim adımları gösterip sonunda uygun HTML oyun konsept
 - `lib/models/game.dart`: domain modelleri ve enum etiketleri
 - `lib/data/game_data.dart`: builder adımları, oyun kütüphanesi ve eşleme mantığı
 - `lib/screens/`: mobil ekranlar
+- `pubspec.yaml`: Flutter bağımlılıkları ve uygulama meta verileri
 
 ## Çalıştırma
 
@@ -25,6 +26,8 @@ Flutter kurulu bir ortamda:
 flutter pub get
 flutter run
 ```
+
+> Not: Bu repo şu an uygulama mantığı ve Flutter kodunu içeriyor. `android/` ve `ios/` klasörleri henüz üretilmediyse Flutter kurulu bir ortamda `flutter create .` çalıştırılarak native proje klasörleri oluşturulabilir.
 
 ## GitHub'a yükleme
 
