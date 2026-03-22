@@ -1,0 +1,300 @@
+﻿<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Tactics Grid</title>
+  <style>
+    :root { color-scheme: dark; font-family: "Segoe UI", Tahoma, sans-serif; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      background: radial-gradient(circle at 50% 10%, #3460ab, #0d1a33 68%);
+    }
+    canvas {
+      width: min(95vw, 540px);
+      height: min(95vh, 960px);
+      aspect-ratio: 9 / 16;
+      border: 1px solid #9fc2ff;
+      border-radius: 18px;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.35);
+      touch-action: none;
+      background: #111e3b;
+      display: block;
+    }
+  </style>
+</head>
+<body>
+  <canvas id="game" width="540" height="960" aria-label="Tactics Grid oyunu"></canvas>
+  <script>
+    (() => {
+      const canvas = document.getElementById("game");
+      const ctx = canvas.getContext("2d");
+      const width = canvas.width;
+      const height = canvas.height;
+      const cols = 7;
+      const rows = 9;
+      const maxTurns = 24;
+
+      const state = {
+        mode: "menu",
+        grid: [],
+        turn: 1,
+        enemyTimer: 0,
+        selected: null,
+        endedReason: "",
+      };
+
+      function index(x, y) {
+        return y * cols + x;
+      }
+
+      function inside(x, y) {
+        return x >= 0 && x < cols && y >= 0 && y < rows;
+      }
+
+      function neighbors(x, y) {
+        return [
+          [x + 1, y],
+          [x - 1, y],
+          [x, y + 1],
+          [x, y - 1],
+        ].filter(([nx, ny]) => inside(nx, ny));
+      }
+
+      function resetGame() {
+        state.mode = "playing";
+        state.turn = 1;
+        state.enemyTimer = 0;
+        state.selected = null;
+        state.endedReason = "";
+        state.grid = Array(cols * rows).fill(0);
+        state.grid[index(1, rows - 2)] = 1;
+        state.grid[index(cols - 2, 1)] = 2;
+      }
+
+      function boardRect() {
+        const padX = 36;
+        const padY = 180;
+        const spacing = 8;
+        const cellW = (width - padX * 2 - spacing * (cols - 1)) / cols;
+        const cellH = (height - padY - 120 - spacing * (rows - 1)) / rows;
+        return { padX, padY, spacing, cellW, cellH };
+      }
+
+      function cellRect(x, y) {
+        const b = boardRect();
+        return {
+          x: b.padX + x * (b.cellW + b.spacing),
+          y: b.padY + y * (b.cellH + b.spacing),
+          w: b.cellW,
+          h: b.cellH,
+        };
+      }
+
+      function ownerCount(owner) {
+        return state.grid.filter((value) => value === owner).length;
+      }
+
+      function playerCanClaim(x, y) {
+        if (state.grid[index(x, y)] !== 0) return false;
+        return neighbors(x, y).some(([nx, ny]) => state.grid[index(nx, ny)] === 1);
+      }
+
+      function tryPlayerClaim(x, y) {
+        if (!playerCanClaim(x, y)) return false;
+        state.grid[index(x, y)] = 1;
+        state.turn += 1;
+        return true;
+      }
+
+      function enemyStep() {
+        const claims = [];
+        for (let y = 0; y < rows; y += 1) {
+          for (let x = 0; x < cols; x += 1) {
+            if (state.grid[index(x, y)] !== 0) continue;
+            if (neighbors(x, y).some(([nx, ny]) => state.grid[index(nx, ny)] === 2)) {
+              claims.push([x, y]);
+            }
+          }
+        }
+
+        if (claims.length === 0) return;
+        const [x, y] = claims[Math.floor(Math.random() * claims.length)];
+        state.grid[index(x, y)] = 2;
+      }
+
+      function checkEnd() {
+        const playerTiles = ownerCount(1);
+        const enemyTiles = ownerCount(2);
+        const emptyTiles = ownerCount(0);
+
+        if (state.turn > maxTurns || emptyTiles === 0) {
+          state.mode = "over";
+          if (playerTiles > enemyTiles) state.endedReason = "Alan üstünlüğü sende";
+          else if (playerTiles < enemyTiles) state.endedReason = "Rakip üstünlük kurdu";
+          else state.endedReason = "Berabere kontrol";
+        }
+      }
+
+      function update(dt) {
+        if (state.mode !== "playing") return;
+        state.enemyTimer += dt;
+        if (state.enemyTimer >= 1.4) {
+          state.enemyTimer = 0;
+          enemyStep();
+          checkEnd();
+        }
+      }
+
+      function drawMenu() {
+        ctx.fillStyle = "#111e3b";
+        ctx.fillRect(0, 0, width, height);
+
+        ctx.fillStyle = "#e8f1ff";
+        ctx.font = "700 54px Segoe UI";
+        ctx.fillText("Tactics Grid", 98, 260);
+        ctx.font = "500 28px Segoe UI";
+        ctx.fillText("Boş komşu kareyi fethet", 130, 340);
+        ctx.fillText("24 tur sonunda alanı koru", 118, 380);
+        ctx.fillText("Başla: Space veya dokun", 108, 420);
+      }
+
+      function drawHud() {
+        ctx.fillStyle = "rgba(7, 14, 28, 0.5)";
+        ctx.fillRect(18, 20, width - 36, 120);
+
+        ctx.fillStyle = "#ebf3ff";
+        ctx.font = "600 27px Segoe UI";
+        ctx.fillText(`Tur: ${state.turn}/${maxTurns}`, 34, 62);
+        ctx.fillText(`Sen: ${ownerCount(1)}  Rakip: ${ownerCount(2)}`, 34, 104);
+      }
+
+      function drawBoard() {
+        for (let y = 0; y < rows; y += 1) {
+          for (let x = 0; x < cols; x += 1) {
+            const owner = state.grid[index(x, y)];
+            const rect = cellRect(x, y);
+            if (owner === 1) ctx.fillStyle = "#5ea3ff";
+            else if (owner === 2) ctx.fillStyle = "#ff7f9d";
+            else if (playerCanClaim(x, y)) ctx.fillStyle = "#2f4f86";
+            else ctx.fillStyle = "#1f315d";
+
+            ctx.fillRect(rect.x, rect.y, rect.w, rect.h);
+            ctx.strokeStyle = "rgba(238, 244, 255, 0.18)";
+            ctx.strokeRect(rect.x, rect.y, rect.w, rect.h);
+          }
+        }
+      }
+
+      function drawGame() {
+        ctx.fillStyle = "#111e3b";
+        ctx.fillRect(0, 0, width, height);
+        drawHud();
+        drawBoard();
+      }
+
+      function drawOver() {
+        drawGame();
+        ctx.fillStyle = "rgba(8, 12, 22, 0.78)";
+        ctx.fillRect(54, 362, width - 108, 248);
+
+        ctx.fillStyle = "#edf4ff";
+        ctx.font = "700 44px Segoe UI";
+        ctx.fillText("Tur Sonu", 176, 436);
+        ctx.font = "600 27px Segoe UI";
+        ctx.fillText(state.endedReason, 118, 486);
+        ctx.fillText(`Sen ${ownerCount(1)} - ${ownerCount(2)} Rakip`, 120, 530);
+        ctx.font = "500 23px Segoe UI";
+        ctx.fillText("Yeniden: Enter veya dokun", 120, 572);
+      }
+
+      function draw() {
+        if (state.mode === "menu") drawMenu();
+        else if (state.mode === "playing") drawGame();
+        else drawOver();
+      }
+
+      function hitCell(clientX, clientY) {
+        const rect = canvas.getBoundingClientRect();
+        const x = ((clientX - rect.left) / rect.width) * width;
+        const y = ((clientY - rect.top) / rect.height) * height;
+        for (let gy = 0; gy < rows; gy += 1) {
+          for (let gx = 0; gx < cols; gx += 1) {
+            const box = cellRect(gx, gy);
+            if (x >= box.x && x <= box.x + box.w && y >= box.y && y <= box.y + box.h) {
+              return [gx, gy];
+            }
+          }
+        }
+        return null;
+      }
+
+      canvas.addEventListener("pointerdown", (event) => {
+        if (state.mode === "menu" || state.mode === "over") {
+          resetGame();
+          draw();
+          return;
+        }
+
+        const hit = hitCell(event.clientX, event.clientY);
+        if (!hit) return;
+        const [x, y] = hit;
+        if (tryPlayerClaim(x, y)) checkEnd();
+      });
+
+      window.addEventListener("keydown", (event) => {
+        const key = event.key.toLowerCase();
+
+        if (key === "f") {
+          if (!document.fullscreenElement) document.documentElement.requestFullscreen();
+          else document.exitFullscreen();
+          return;
+        }
+
+        if (key === "escape" && document.fullscreenElement) {
+          document.exitFullscreen();
+          return;
+        }
+
+        if (key === " " || key === "enter") {
+          if (state.mode === "menu" || state.mode === "over") resetGame();
+        }
+      });
+
+      let prev = performance.now();
+      function frame(now) {
+        const dt = Math.min(0.05, (now - prev) / 1000);
+        prev = now;
+        update(dt);
+        draw();
+        requestAnimationFrame(frame);
+      }
+
+      function renderGameToText() {
+        return JSON.stringify({
+          coordinate_system: "origin_top_left_x_right_y_down_canvas_540x960",
+          mode: state.mode,
+          turn: state.turn,
+          player_tiles: ownerCount(1),
+          enemy_tiles: ownerCount(2),
+          grid: state.grid,
+        });
+      }
+
+      window.render_game_to_text = renderGameToText;
+      window.advanceTime = (ms) => {
+        const steps = Math.max(1, Math.round(ms / (1000 / 60)));
+        const dt = 1 / 60;
+        for (let i = 0; i < steps; i += 1) update(dt);
+        draw();
+      };
+
+      draw();
+      requestAnimationFrame(frame);
+    })();
+  </script>
+</body>
+</html>

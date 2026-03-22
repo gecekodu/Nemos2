@@ -144,6 +144,7 @@ GameProfile _game({
     title: title,
     shortDescription: 'desc',
     experience: 'exp',
+    htmlAssetPath: 'assets/games/html/duel_dash.html',
     mode: mode,
     tempo: tempo,
     socialStyle: socialStyle,

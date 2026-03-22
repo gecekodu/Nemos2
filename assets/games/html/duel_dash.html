@@ -1,0 +1,316 @@
+﻿<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Duel Dash</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      font-family: "Segoe UI", Tahoma, sans-serif;
+    }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      background: radial-gradient(circle at 20% 20%, #243b70, #0b1220 65%);
+    }
+    canvas {
+      width: min(95vw, 540px);
+      height: min(95vh, 960px);
+      aspect-ratio: 9 / 16;
+      border: 1px solid #5a75b6;
+      border-radius: 18px;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.35);
+      touch-action: none;
+      background: #0f1730;
+      display: block;
+    }
+  </style>
+</head>
+<body>
+  <canvas id="game" width="540" height="960" aria-label="Duel Dash oyunu"></canvas>
+  <script>
+    (() => {
+      const canvas = document.getElementById("game");
+      const ctx = canvas.getContext("2d");
+      const width = canvas.width;
+      const height = canvas.height;
+
+      const state = {
+        mode: "menu",
+        score: 0,
+        health: 3,
+        elapsed: 0,
+        lane: 2,
+        laneCount: 5,
+        orbs: [],
+        spawnTimer: 0,
+        endedReason: "",
+        keys: new Set(),
+      };
+
+      function laneWidth() {
+        return width / state.laneCount;
+      }
+
+      function resetGame() {
+        state.mode = "playing";
+        state.score = 0;
+        state.health = 3;
+        state.elapsed = 0;
+        state.lane = 2;
+        state.orbs = [];
+        state.spawnTimer = 0;
+        state.endedReason = "";
+      }
+
+      function spawnOrb() {
+        const lane = Math.floor(Math.random() * state.laneCount);
+        const good = Math.random() > 0.32;
+        state.orbs.push({
+          lane,
+          y: -40,
+          radius: 28,
+          speed: good ? 390 : 330,
+          good,
+        });
+      }
+
+      function moveLane(delta) {
+        state.lane = Math.max(0, Math.min(state.laneCount - 1, state.lane + delta));
+      }
+
+      function getPlayerRect() {
+        const lw = laneWidth();
+        return {
+          x: state.lane * lw + lw * 0.18,
+          y: height - 140,
+          w: lw * 0.64,
+          h: 86,
+        };
+      }
+
+      function playerCenterX() {
+        const rect = getPlayerRect();
+        return rect.x + rect.w / 2;
+      }
+
+      function update(dt) {
+        if (state.mode !== "playing") return;
+
+        state.elapsed += dt;
+        state.spawnTimer -= dt;
+        if (state.spawnTimer <= 0) {
+          spawnOrb();
+          state.spawnTimer = 0.45;
+        }
+
+        const player = getPlayerRect();
+        state.orbs.forEach((orb) => {
+          orb.y += orb.speed * dt;
+        });
+
+        state.orbs = state.orbs.filter((orb) => {
+          const x = orb.lane * laneWidth() + laneWidth() / 2;
+          const hitY = orb.y + orb.radius > player.y && orb.y - orb.radius < player.y + player.h;
+          const hitX = Math.abs(x - playerCenterX()) < player.w * 0.45;
+
+          if (hitX && hitY) {
+            if (orb.good) {
+              state.score += 10;
+            } else {
+              state.health -= 1;
+            }
+            return false;
+          }
+
+          if (orb.y - orb.radius > height) {
+            if (orb.good) state.health -= 1;
+            return false;
+          }
+
+          return true;
+        });
+
+        if (state.health <= 0) {
+          state.mode = "over";
+          state.endedReason = "Can bitti";
+        } else if (state.elapsed >= 60) {
+          state.mode = "over";
+          state.endedReason = "Süre tamamlandı";
+        }
+      }
+
+      function drawLaneGrid() {
+        const lw = laneWidth();
+        ctx.strokeStyle = "rgba(145, 175, 255, 0.22)";
+        ctx.lineWidth = 2;
+        for (let i = 1; i < state.laneCount; i += 1) {
+          const x = i * lw;
+          ctx.beginPath();
+          ctx.moveTo(x, 0);
+          ctx.lineTo(x, height);
+          ctx.stroke();
+        }
+      }
+
+      function drawMenu() {
+        ctx.fillStyle = "#0f1730";
+        ctx.fillRect(0, 0, width, height);
+        drawLaneGrid();
+
+        ctx.fillStyle = "#ffffff";
+        ctx.font = "700 54px Segoe UI";
+        ctx.fillText("Duel Dash", 128, 260);
+
+        ctx.font = "500 28px Segoe UI";
+        ctx.fillStyle = "#d6e2ff";
+        ctx.fillText("Sol/Sağ ile şerit değiştir", 110, 340);
+        ctx.fillText("Mavi küreden kaç, turuncuyu topla", 72, 386);
+        ctx.fillText("Başlamak için Space veya dokun", 82, 432);
+
+        drawPlayer();
+      }
+
+      function drawHud() {
+        ctx.fillStyle = "rgba(5, 9, 24, 0.48)";
+        ctx.fillRect(16, 16, width - 32, 72);
+
+        ctx.fillStyle = "#eff4ff";
+        ctx.font = "600 28px Segoe UI";
+        ctx.fillText(`Skor: ${state.score}`, 30, 62);
+        ctx.fillText(`Can: ${state.health}`, 220, 62);
+        ctx.fillText(`Süre: ${Math.max(0, Math.ceil(60 - state.elapsed))}`, 360, 62);
+      }
+
+      function drawPlayer() {
+        const p = getPlayerRect();
+        ctx.fillStyle = "#60a5fa";
+        ctx.fillRect(p.x, p.y, p.w, p.h);
+        ctx.fillStyle = "#0b1120";
+        ctx.fillRect(p.x + 14, p.y + 18, p.w - 28, p.h - 34);
+      }
+
+      function drawOrbs() {
+        state.orbs.forEach((orb) => {
+          const x = orb.lane * laneWidth() + laneWidth() / 2;
+          ctx.beginPath();
+          ctx.fillStyle = orb.good ? "#f59e0b" : "#38bdf8";
+          ctx.arc(x, orb.y, orb.radius, 0, Math.PI * 2);
+          ctx.fill();
+        });
+      }
+
+      function drawGame() {
+        ctx.fillStyle = "#0f1730";
+        ctx.fillRect(0, 0, width, height);
+        drawLaneGrid();
+        drawHud();
+        drawOrbs();
+        drawPlayer();
+      }
+
+      function drawOver() {
+        drawGame();
+        ctx.fillStyle = "rgba(4, 8, 17, 0.72)";
+        ctx.fillRect(48, 300, width - 96, 310);
+
+        ctx.fillStyle = "#f8fafc";
+        ctx.font = "700 48px Segoe UI";
+        ctx.fillText("Tur Bitti", 170, 385);
+        ctx.font = "600 30px Segoe UI";
+        ctx.fillText(`Skor: ${state.score}`, 190, 438);
+        ctx.fillText(state.endedReason, 156, 484);
+        ctx.font = "500 24px Segoe UI";
+        ctx.fillText("Yeniden başlamak için Enter", 128, 540);
+      }
+
+      function draw() {
+        if (state.mode === "menu") drawMenu();
+        else if (state.mode === "playing") drawGame();
+        else drawOver();
+      }
+
+      function pointerToLane(clientX) {
+        const rect = canvas.getBoundingClientRect();
+        const x = ((clientX - rect.left) / rect.width) * width;
+        return Math.max(0, Math.min(state.laneCount - 1, Math.floor(x / laneWidth())));
+      }
+
+      canvas.addEventListener("pointerdown", (event) => {
+        if (state.mode === "menu" || state.mode === "over") {
+          resetGame();
+          draw();
+          return;
+        }
+        state.lane = pointerToLane(event.clientX);
+      });
+
+      window.addEventListener("keydown", (event) => {
+        const key = event.key.toLowerCase();
+
+        if (key === "f") {
+          if (!document.fullscreenElement) document.documentElement.requestFullscreen();
+          else document.exitFullscreen();
+          return;
+        }
+
+        if (key === "escape" && document.fullscreenElement) {
+          document.exitFullscreen();
+        }
+
+        if (key === " " || key === "enter") {
+          if (state.mode === "menu" || state.mode === "over") {
+            resetGame();
+          }
+          return;
+        }
+
+        if (state.mode !== "playing") return;
+
+        if (key === "arrowleft" || key === "a") moveLane(-1);
+        if (key === "arrowright" || key === "d") moveLane(1);
+      });
+
+      let rafId = 0;
+      let prev = performance.now();
+      function frame(now) {
+        const dt = Math.min(0.05, (now - prev) / 1000);
+        prev = now;
+        update(dt);
+        draw();
+        rafId = requestAnimationFrame(frame);
+      }
+
+      function renderGameToText() {
+        return JSON.stringify({
+          coordinate_system: "origin_top_left_x_right_y_down_canvas_540x960",
+          mode: state.mode,
+          player: { lane: state.lane, lane_count: state.laneCount },
+          score: state.score,
+          health: state.health,
+          remaining_seconds: Math.max(0, Math.ceil(60 - state.elapsed)),
+          orbs: state.orbs.map((orb) => ({ lane: orb.lane, y: Math.round(orb.y), good: orb.good })),
+        });
+      }
+
+      window.render_game_to_text = renderGameToText;
+      window.advanceTime = (ms) => {
+        const steps = Math.max(1, Math.round(ms / (1000 / 60)));
+        const dt = 1 / 60;
+        for (let i = 0; i < steps; i += 1) {
+          update(dt);
+        }
+        draw();
+      };
+
+      draw();
+      rafId = requestAnimationFrame(frame);
+
+      window.addEventListener("beforeunload", () => cancelAnimationFrame(rafId));
+    })();
+  </script>
+</body>
+</html>

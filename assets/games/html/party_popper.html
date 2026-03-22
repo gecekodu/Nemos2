@@ -1,0 +1,249 @@
+﻿<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Party Popper</title>
+  <style>
+    :root { color-scheme: dark; font-family: "Segoe UI", Tahoma, sans-serif; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      background: radial-gradient(circle at 80% 20%, #b63057, #2a1020 68%);
+    }
+    canvas {
+      width: min(95vw, 540px);
+      height: min(95vh, 960px);
+      aspect-ratio: 9 / 16;
+      border: 1px solid #ffb7cf;
+      border-radius: 18px;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.35);
+      touch-action: none;
+      background: #321124;
+      display: block;
+    }
+  </style>
+</head>
+<body>
+  <canvas id="game" width="540" height="960" aria-label="Party Popper oyunu"></canvas>
+  <script>
+    (() => {
+      const canvas = document.getElementById("game");
+      const ctx = canvas.getContext("2d");
+      const width = canvas.width;
+      const height = canvas.height;
+      const totalTime = 45;
+
+      const state = {
+        mode: "menu",
+        score: 0,
+        combo: 0,
+        maxCombo: 0,
+        elapsed: 0,
+        spawnTimer: 0,
+        balloons: [],
+      };
+
+      function resetGame() {
+        state.mode = "playing";
+        state.score = 0;
+        state.combo = 0;
+        state.maxCombo = 0;
+        state.elapsed = 0;
+        state.spawnTimer = 0;
+        state.balloons = [];
+      }
+
+      function spawnBalloon() {
+        const r = 22 + Math.random() * 20;
+        state.balloons.push({
+          x: 60 + Math.random() * (width - 120),
+          y: height + r,
+          r,
+          vy: 70 + Math.random() * 90,
+          color: `hsl(${Math.floor(Math.random() * 360)}, 80%, 62%)`,
+        });
+      }
+
+      function update(dt) {
+        if (state.mode !== "playing") return;
+
+        state.elapsed += dt;
+        state.spawnTimer -= dt;
+
+        if (state.spawnTimer <= 0) {
+          spawnBalloon();
+          state.spawnTimer = 0.22;
+        }
+
+        state.balloons.forEach((balloon) => {
+          balloon.y -= balloon.vy * dt;
+        });
+
+        const before = state.balloons.length;
+        state.balloons = state.balloons.filter((balloon) => balloon.y + balloon.r > -6);
+        const escaped = before - state.balloons.length;
+        if (escaped > 0) state.combo = Math.max(0, state.combo - escaped);
+
+        if (state.elapsed >= totalTime) {
+          state.mode = "over";
+        }
+      }
+
+      function popBalloon(clientX, clientY) {
+        if (state.mode !== "playing") return;
+        const rect = canvas.getBoundingClientRect();
+        const x = ((clientX - rect.left) / rect.width) * width;
+        const y = ((clientY - rect.top) / rect.height) * height;
+
+        let popped = false;
+        state.balloons = state.balloons.filter((balloon) => {
+          const dx = x - balloon.x;
+          const dy = y - balloon.y;
+          const hit = dx * dx + dy * dy <= balloon.r * balloon.r;
+          if (hit) {
+            popped = true;
+            return false;
+          }
+          return true;
+        });
+
+        if (popped) {
+          state.combo += 1;
+          state.maxCombo = Math.max(state.maxCombo, state.combo);
+          state.score += 5 + Math.floor(state.combo / 2);
+        } else {
+          state.combo = 0;
+        }
+      }
+
+      function drawMenu() {
+        ctx.fillStyle = "#321124";
+        ctx.fillRect(0, 0, width, height);
+
+        ctx.fillStyle = "#ffeaf2";
+        ctx.font = "700 54px Segoe UI";
+        ctx.fillText("Party Popper", 94, 264);
+        ctx.font = "500 28px Segoe UI";
+        ctx.fillText("Balonları hızlıca patlat", 132, 342);
+        ctx.fillText("Kaçırırsan kombo düşer", 132, 382);
+        ctx.fillText("Başla: Space veya dokun", 106, 422);
+      }
+
+      function drawHud() {
+        ctx.fillStyle = "rgba(34, 7, 19, 0.52)";
+        ctx.fillRect(18, 18, width - 36, 82);
+
+        ctx.fillStyle = "#ffeef5";
+        ctx.font = "600 28px Segoe UI";
+        ctx.fillText(`Skor: ${state.score}`, 32, 62);
+        ctx.fillText(`Kombo: x${state.combo}`, 202, 62);
+        ctx.fillText(`Süre: ${Math.max(0, Math.ceil(totalTime - state.elapsed))}`, 370, 62);
+      }
+
+      function drawGame() {
+        ctx.fillStyle = "#321124";
+        ctx.fillRect(0, 0, width, height);
+        drawHud();
+
+        state.balloons.forEach((balloon) => {
+          ctx.fillStyle = balloon.color;
+          ctx.beginPath();
+          ctx.arc(balloon.x, balloon.y, balloon.r, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.strokeStyle = "rgba(255,255,255,0.65)";
+          ctx.stroke();
+        });
+      }
+
+      function drawOver() {
+        drawGame();
+
+        ctx.fillStyle = "rgba(16, 4, 10, 0.78)";
+        ctx.fillRect(58, 338, width - 116, 286);
+
+        ctx.fillStyle = "#fff0f7";
+        ctx.font = "700 46px Segoe UI";
+        ctx.fillText("Parti Bitti", 155, 416);
+        ctx.font = "600 30px Segoe UI";
+        ctx.fillText(`Skor: ${state.score}`, 192, 470);
+        ctx.fillText(`Maks Kombo: x${state.maxCombo}`, 132, 516);
+        ctx.font = "500 24px Segoe UI";
+        ctx.fillText("Yeniden: Enter veya dokun", 120, 564);
+      }
+
+      function draw() {
+        if (state.mode === "menu") drawMenu();
+        else if (state.mode === "playing") drawGame();
+        else drawOver();
+      }
+
+      canvas.addEventListener("pointerdown", (event) => {
+        if (state.mode === "menu" || state.mode === "over") {
+          resetGame();
+          draw();
+          return;
+        }
+        popBalloon(event.clientX, event.clientY);
+      });
+
+      window.addEventListener("keydown", (event) => {
+        const key = event.key.toLowerCase();
+
+        if (key === "f") {
+          if (!document.fullscreenElement) document.documentElement.requestFullscreen();
+          else document.exitFullscreen();
+          return;
+        }
+
+        if (key === "escape" && document.fullscreenElement) {
+          document.exitFullscreen();
+          return;
+        }
+
+        if (key === " " || key === "enter") {
+          if (state.mode === "menu" || state.mode === "over") resetGame();
+        }
+      });
+
+      let prev = performance.now();
+      function frame(now) {
+        const dt = Math.min(0.05, (now - prev) / 1000);
+        prev = now;
+        update(dt);
+        draw();
+        requestAnimationFrame(frame);
+      }
+
+      function renderGameToText() {
+        return JSON.stringify({
+          coordinate_system: "origin_top_left_x_right_y_down_canvas_540x960",
+          mode: state.mode,
+          score: state.score,
+          combo: state.combo,
+          max_combo: state.maxCombo,
+          remaining_seconds: Math.max(0, Math.ceil(totalTime - state.elapsed)),
+          balloons: state.balloons.slice(0, 12).map((balloon) => ({
+            x: Math.round(balloon.x),
+            y: Math.round(balloon.y),
+            r: Math.round(balloon.r),
+          })),
+        });
+      }
+
+      window.render_game_to_text = renderGameToText;
+      window.advanceTime = (ms) => {
+        const steps = Math.max(1, Math.round(ms / (1000 / 60)));
+        const dt = 1 / 60;
+        for (let i = 0; i < steps; i += 1) update(dt);
+        draw();
+      };
+
+      draw();
+      requestAnimationFrame(frame);
+    })();
+  </script>
+</body>
+</html>

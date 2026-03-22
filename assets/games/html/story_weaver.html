@@ -1,0 +1,260 @@
+﻿<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Story Weaver</title>
+  <style>
+    :root { color-scheme: dark; font-family: "Segoe UI", Tahoma, sans-serif; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      background: radial-gradient(circle at 70% 10%, #5b2b78, #170e27 66%);
+    }
+    canvas {
+      width: min(95vw, 540px);
+      height: min(95vh, 960px);
+      aspect-ratio: 9 / 16;
+      border: 1px solid #c58cff;
+      border-radius: 18px;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.35);
+      touch-action: none;
+      background: #1e1035;
+      display: block;
+    }
+  </style>
+</head>
+<body>
+  <canvas id="game" width="540" height="960" aria-label="Story Weaver oyunu"></canvas>
+  <script>
+    (() => {
+      const canvas = document.getElementById("game");
+      const ctx = canvas.getContext("2d");
+      const width = canvas.width;
+      const height = canvas.height;
+
+      const optionsPool = [
+        { title: "Kayıp Harita", text: "Cesaret +1, Enerji -1", effects: { courage: 1, energy: -1, progress: 1 } },
+        { title: "Sessiz Kamp", text: "Enerji +2, Uyum +1", effects: { energy: 2, harmony: 1 } },
+        { title: "Pazar Meydanı", text: "İlerleme +1, Uyum +1", effects: { progress: 1, harmony: 1 } },
+        { title: "Kule Muhafızı", text: "Cesaret +2, Enerji -2", effects: { courage: 2, energy: -2, progress: 1 } },
+        { title: "Yağmur Duası", text: "Enerji +1, Uyum +2", effects: { energy: 1, harmony: 2 } },
+        { title: "Ayna Kapısı", text: "İlerleme +2, Cesaret -1", effects: { progress: 2, courage: -1 } },
+      ];
+
+      const state = {
+        mode: "menu",
+        day: 1,
+        energy: 5,
+        courage: 3,
+        harmony: 3,
+        progress: 0,
+        choices: [],
+        endedReason: "",
+      };
+
+      function pickChoices() {
+        const shuffled = [...optionsPool].sort(() => Math.random() - 0.5);
+        state.choices = shuffled.slice(0, 3);
+      }
+
+      function resetGame() {
+        state.mode = "playing";
+        state.day = 1;
+        state.energy = 5;
+        state.courage = 3;
+        state.harmony = 3;
+        state.progress = 0;
+        state.endedReason = "";
+        pickChoices();
+      }
+
+      function applyChoice(choice) {
+        const eff = choice.effects;
+        state.energy += eff.energy || 0;
+        state.courage += eff.courage || 0;
+        state.harmony += eff.harmony || 0;
+        state.progress += eff.progress || 0;
+
+        state.energy = Math.max(0, Math.min(9, state.energy));
+        state.courage = Math.max(0, Math.min(9, state.courage));
+        state.harmony = Math.max(0, Math.min(9, state.harmony));
+        state.progress = Math.max(0, state.progress);
+
+        state.day += 1;
+        if (state.energy <= 0) {
+          state.mode = "over";
+          state.endedReason = "Ekibin enerjisi tükendi";
+          return;
+        }
+
+        if (state.day > 9) {
+          state.mode = "over";
+          state.endedReason = state.progress >= 8 ? "Efsane tamamlandı" : "Hikâye yarım kaldı";
+          return;
+        }
+
+        pickChoices();
+      }
+
+      function choiceRect(index) {
+        const x = 44;
+        const y = 320 + index * 180;
+        return { x, y, w: width - 88, h: 154 };
+      }
+
+      function drawHeader() {
+        ctx.fillStyle = "rgba(24, 12, 39, 0.6)";
+        ctx.fillRect(20, 20, width - 40, 236);
+
+        ctx.fillStyle = "#f4e7ff";
+        ctx.font = "700 44px Segoe UI";
+        ctx.fillText("Story Weaver", 114, 84);
+
+        ctx.font = "600 24px Segoe UI";
+        ctx.fillText(`Gün: ${state.day}/9`, 40, 132);
+        ctx.fillText(`Enerji: ${state.energy}`, 180, 132);
+        ctx.fillText(`Cesaret: ${state.courage}`, 322, 132);
+        ctx.fillText(`Uyum: ${state.harmony}`, 40, 172);
+        ctx.fillText(`İlerleme: ${state.progress}`, 180, 172);
+      }
+
+      function drawMenu() {
+        ctx.fillStyle = "#1e1035";
+        ctx.fillRect(0, 0, width, height);
+        drawHeader();
+
+        ctx.fillStyle = "#e9d8ff";
+        ctx.font = "500 28px Segoe UI";
+        ctx.fillText("Her tur bir karar seç", 150, 300);
+        ctx.fillText("9 günde hikâyeyi tamamla", 118, 342);
+        ctx.fillText("Başla: Space veya dokun", 120, 384);
+      }
+
+      function drawChoices() {
+        state.choices.forEach((choice, index) => {
+          const box = choiceRect(index);
+          ctx.fillStyle = "#3c1f66";
+          ctx.fillRect(box.x, box.y, box.w, box.h);
+          ctx.strokeStyle = "#cf9fff";
+          ctx.lineWidth = 2;
+          ctx.strokeRect(box.x, box.y, box.w, box.h);
+
+          ctx.fillStyle = "#fbf4ff";
+          ctx.font = "700 31px Segoe UI";
+          ctx.fillText(`${index + 1}. ${choice.title}`, box.x + 16, box.y + 52);
+          ctx.font = "500 25px Segoe UI";
+          ctx.fillText(choice.text, box.x + 16, box.y + 100);
+        });
+      }
+
+      function drawGame() {
+        ctx.fillStyle = "#1e1035";
+        ctx.fillRect(0, 0, width, height);
+        drawHeader();
+        drawChoices();
+      }
+
+      function drawOver() {
+        drawGame();
+        ctx.fillStyle = "rgba(15, 7, 23, 0.8)";
+        ctx.fillRect(54, 360, width - 108, 238);
+
+        ctx.fillStyle = "#f8ebff";
+        ctx.font = "700 42px Segoe UI";
+        ctx.fillText("Bölüm Sonu", 160, 430);
+        ctx.font = "600 28px Segoe UI";
+        ctx.fillText(state.endedReason, 96, 476);
+        ctx.fillText(`Toplam ilerleme: ${state.progress}`, 122, 522);
+        ctx.font = "500 22px Segoe UI";
+        ctx.fillText("Yeniden: Enter veya dokun", 124, 560);
+      }
+
+      function draw() {
+        if (state.mode === "menu") drawMenu();
+        else if (state.mode === "playing") drawGame();
+        else drawOver();
+      }
+
+      function hitChoice(clientX, clientY) {
+        const rect = canvas.getBoundingClientRect();
+        const x = ((clientX - rect.left) / rect.width) * width;
+        const y = ((clientY - rect.top) / rect.height) * height;
+
+        for (let i = 0; i < state.choices.length; i += 1) {
+          const box = choiceRect(i);
+          if (x >= box.x && x <= box.x + box.w && y >= box.y && y <= box.y + box.h) {
+            return i;
+          }
+        }
+        return -1;
+      }
+
+      canvas.addEventListener("pointerdown", (event) => {
+        if (state.mode === "menu" || state.mode === "over") {
+          resetGame();
+          draw();
+          return;
+        }
+
+        const index = hitChoice(event.clientX, event.clientY);
+        if (index >= 0) applyChoice(state.choices[index]);
+      });
+
+      window.addEventListener("keydown", (event) => {
+        const key = event.key.toLowerCase();
+
+        if (key === "f") {
+          if (!document.fullscreenElement) document.documentElement.requestFullscreen();
+          else document.exitFullscreen();
+          return;
+        }
+
+        if (key === "escape" && document.fullscreenElement) {
+          document.exitFullscreen();
+          return;
+        }
+
+        if (key === " " || key === "enter") {
+          if (state.mode === "menu" || state.mode === "over") resetGame();
+          return;
+        }
+
+        if (state.mode !== "playing") return;
+        if (key === "1" || key === "2" || key === "3") {
+          const idx = Number(key) - 1;
+          if (state.choices[idx]) applyChoice(state.choices[idx]);
+        }
+      });
+
+      function update() {
+        // Story game is turn-based; deterministic hook still available.
+      }
+
+      function renderGameToText() {
+        return JSON.stringify({
+          coordinate_system: "origin_top_left_x_right_y_down_canvas_540x960",
+          mode: state.mode,
+          day: state.day,
+          energy: state.energy,
+          courage: state.courage,
+          harmony: state.harmony,
+          progress: state.progress,
+          choices: state.choices.map((choice) => ({ title: choice.title, text: choice.text })),
+        });
+      }
+
+      window.render_game_to_text = renderGameToText;
+      window.advanceTime = (ms) => {
+        const steps = Math.max(1, Math.round(ms / (1000 / 60)));
+        for (let i = 0; i < steps; i += 1) update();
+        draw();
+      };
+
+      draw();
+    })();
+  </script>
+</body>
+</html>

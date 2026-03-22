@@ -19,6 +19,7 @@ Kullanıcı iki ana akış yaşar:
 - **1200 olasılık kombinasyonu** üreten tercih sistemi
 - Bu kombinasyonları temsil eden 20 oyunluk başlangıç kütüphanesi
 - Kademeli öneri: Kullanıcı tüm adımları tamamlamadan da ara öneri
+- Seçeneklere uygun HTML mini oyunlar ve uygulama içi oynatma ekranı
 - Arkadaş, etkileşim, liderlik verileri için örnek domain modelleri
 
 ## 1200 İhtimal Nasıl Oluşuyor?
@@ -53,6 +54,19 @@ flutter run
 flutter analyze
 flutter test
 ```
+
+## HTML Oyunlar
+
+HTML mini oyunları `assets/games/html/` altında tutulur ve `webview_flutter` ile uygulama içinde açılır.
+
+Mevcut başlangıç oyunları:
+
+- `duel_dash.html` (rekabet odaklı)
+- `reflex_orbit.html` (refleks odaklı)
+- `zen_garden.html` (rahat deneyim)
+- `story_weaver.html` (hikâye odaklı)
+- `party_popper.html` (parti/sosyal tempo)
+- `tactics_grid.html` (strateji odaklı)
 
 ## Mimari Özeti
 

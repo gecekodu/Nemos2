@@ -1,0 +1,274 @@
+﻿<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Zen Garden</title>
+  <style>
+    :root { color-scheme: dark; font-family: "Segoe UI", Tahoma, sans-serif; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      background: radial-gradient(circle at 30% 15%, #315f50, #0d1e18 66%);
+    }
+    canvas {
+      width: min(95vw, 540px);
+      height: min(95vh, 960px);
+      aspect-ratio: 9 / 16;
+      border: 1px solid #7bc7a5;
+      border-radius: 18px;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.35);
+      touch-action: none;
+      background: #10291f;
+      display: block;
+    }
+  </style>
+</head>
+<body>
+  <canvas id="game" width="540" height="960" aria-label="Zen Garden oyunu"></canvas>
+  <script>
+    (() => {
+      const canvas = document.getElementById("game");
+      const ctx = canvas.getContext("2d");
+      const width = canvas.width;
+      const height = canvas.height;
+      const cols = 4;
+      const rows = 6;
+      const totalTime = 90;
+
+      const state = {
+        mode: "menu",
+        cells: [],
+        score: 0,
+        elapsed: 0,
+        dryTimer: 0,
+        endedReason: "",
+      };
+
+      function resetGrid() {
+        state.cells = [];
+        for (let y = 0; y < rows; y += 1) {
+          for (let x = 0; x < cols; x += 1) {
+            state.cells.push({ x, y, growth: Math.floor(Math.random() * 2), cooldown: 0 });
+          }
+        }
+      }
+
+      function resetGame() {
+        state.mode = "playing";
+        state.score = 0;
+        state.elapsed = 0;
+        state.dryTimer = 0;
+        state.endedReason = "";
+        resetGrid();
+      }
+
+      function cellRect(x, y) {
+        const marginX = 36;
+        const marginTop = 130;
+        const spacing = 14;
+        const w = (width - marginX * 2 - spacing * (cols - 1)) / cols;
+        const h = 110;
+        return {
+          x: marginX + x * (w + spacing),
+          y: marginTop + y * (h + spacing),
+          w,
+          h,
+        };
+      }
+
+      function growCell(cell) {
+        if (cell.cooldown > 0) return;
+        if (cell.growth < 3) {
+          cell.growth += 1;
+          state.score += 6;
+        } else {
+          state.score += 2;
+        }
+        cell.cooldown = 0.5;
+      }
+
+      function dryRandomCell() {
+        const candidates = state.cells.filter((cell) => cell.growth > 0);
+        if (candidates.length === 0) return;
+        const choice = candidates[Math.floor(Math.random() * candidates.length)];
+        choice.growth -= 1;
+      }
+
+      function update(dt) {
+        if (state.mode !== "playing") return;
+
+        state.elapsed += dt;
+        state.dryTimer += dt;
+
+        for (const cell of state.cells) {
+          cell.cooldown = Math.max(0, cell.cooldown - dt);
+        }
+
+        if (state.dryTimer >= 1.6) {
+          state.dryTimer = 0;
+          dryRandomCell();
+        }
+
+        const fullCells = state.cells.filter((cell) => cell.growth === 3).length;
+        if (fullCells >= Math.floor(state.cells.length * 0.75)) {
+          state.mode = "over";
+          state.endedReason = "Bahçe canlı ve dengeli";
+        } else if (state.elapsed >= totalTime) {
+          state.mode = "over";
+          state.endedReason = "Günün süresi doldu";
+        }
+      }
+
+      function drawCell(cell) {
+        const rect = cellRect(cell.x, cell.y);
+        const tones = ["#203a2f", "#2f6d4f", "#45a26c", "#73d99b"];
+        ctx.fillStyle = tones[cell.growth];
+        ctx.fillRect(rect.x, rect.y, rect.w, rect.h);
+
+        const centerX = rect.x + rect.w / 2;
+        const centerY = rect.y + rect.h / 2;
+        ctx.fillStyle = cell.growth > 0 ? "#f0fff7" : "#a4c8b5";
+        ctx.beginPath();
+        ctx.arc(centerX, centerY, 18 + cell.growth * 8, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      function drawMenu() {
+        ctx.fillStyle = "#10291f";
+        ctx.fillRect(0, 0, width, height);
+
+        ctx.fillStyle = "#f1fff8";
+        ctx.font = "700 54px Segoe UI";
+        ctx.fillText("Zen Garden", 120, 255);
+        ctx.font = "500 28px Segoe UI";
+        ctx.fillStyle = "#d2f5e2";
+        ctx.fillText("Hücrelere dokunup büyüt", 145, 340);
+        ctx.fillText("%75 canlılık hedefleniyor", 128, 380);
+        ctx.fillText("Başlamak için dokun / Space", 92, 420);
+      }
+
+      function drawHud() {
+        ctx.fillStyle = "rgba(7, 20, 15, 0.5)";
+        ctx.fillRect(20, 20, width - 40, 86);
+
+        const fullCells = state.cells.filter((cell) => cell.growth === 3).length;
+        ctx.fillStyle = "#ecfff5";
+        ctx.font = "600 27px Segoe UI";
+        ctx.fillText(`Skor: ${state.score}`, 34, 57);
+        ctx.fillText(`Canlı: ${fullCells}/${state.cells.length}`, 190, 57);
+        ctx.fillText(`Süre: ${Math.max(0, Math.ceil(totalTime - state.elapsed))}`, 378, 57);
+      }
+
+      function drawGame() {
+        ctx.fillStyle = "#10291f";
+        ctx.fillRect(0, 0, width, height);
+        drawHud();
+        for (const cell of state.cells) {
+          drawCell(cell);
+        }
+      }
+
+      function drawOver() {
+        drawGame();
+        ctx.fillStyle = "rgba(4, 9, 7, 0.74)";
+        ctx.fillRect(58, 332, width - 116, 280);
+
+        ctx.fillStyle = "#f1fff8";
+        ctx.font = "700 46px Segoe UI";
+        ctx.fillText("Seans Sonu", 158, 410);
+        ctx.font = "600 30px Segoe UI";
+        ctx.fillText(`Skor: ${state.score}`, 190, 460);
+        ctx.font = "500 24px Segoe UI";
+        ctx.fillText(state.endedReason, 120, 506);
+        ctx.fillText("Yeniden: Enter veya dokun", 124, 550);
+      }
+
+      function draw() {
+        if (state.mode === "menu") drawMenu();
+        else if (state.mode === "playing") drawGame();
+        else drawOver();
+      }
+
+      function hitCell(clientX, clientY) {
+        const rect = canvas.getBoundingClientRect();
+        const x = ((clientX - rect.left) / rect.width) * width;
+        const y = ((clientY - rect.top) / rect.height) * height;
+        for (const cell of state.cells) {
+          const box = cellRect(cell.x, cell.y);
+          if (x >= box.x && x <= box.x + box.w && y >= box.y && y <= box.y + box.h) {
+            return cell;
+          }
+        }
+        return null;
+      }
+
+      canvas.addEventListener("pointerdown", (event) => {
+        if (state.mode === "menu" || state.mode === "over") {
+          resetGame();
+          draw();
+          return;
+        }
+
+        const cell = hitCell(event.clientX, event.clientY);
+        if (cell) growCell(cell);
+      });
+
+      window.addEventListener("keydown", (event) => {
+        const key = event.key.toLowerCase();
+
+        if (key === "f") {
+          if (!document.fullscreenElement) document.documentElement.requestFullscreen();
+          else document.exitFullscreen();
+          return;
+        }
+
+        if (key === "escape" && document.fullscreenElement) {
+          document.exitFullscreen();
+          return;
+        }
+
+        if (key === " " || key === "enter") {
+          if (state.mode === "menu" || state.mode === "over") {
+            resetGame();
+          }
+        }
+      });
+
+      let previous = performance.now();
+      function frame(now) {
+        const dt = Math.min(0.05, (now - previous) / 1000);
+        previous = now;
+        update(dt);
+        draw();
+        requestAnimationFrame(frame);
+      }
+
+      function renderGameToText() {
+        const fullCells = state.cells.filter((cell) => cell.growth === 3).length;
+        return JSON.stringify({
+          coordinate_system: "origin_top_left_x_right_y_down_canvas_540x960",
+          mode: state.mode,
+          score: state.score,
+          alive_ratio: `${fullCells}/${state.cells.length}`,
+          remaining_seconds: Math.max(0, Math.ceil(totalTime - state.elapsed)),
+          cells: state.cells.map((cell) => ({ x: cell.x, y: cell.y, growth: cell.growth })),
+        });
+      }
+
+      window.render_game_to_text = renderGameToText;
+      window.advanceTime = (ms) => {
+        const steps = Math.max(1, Math.round(ms / (1000 / 60)));
+        const dt = 1 / 60;
+        for (let i = 0; i < steps; i += 1) update(dt);
+        draw();
+      };
+
+      draw();
+      requestAnimationFrame(frame);
+    })();
+  </script>
+</body>
+</html>

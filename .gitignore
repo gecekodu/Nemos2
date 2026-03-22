@@ -13,3 +13,6 @@ build/
 # OS
 .DS_Store
 Thumbs.db
+
+# Test artifacts
+output/web-game/

@@ -117,6 +117,7 @@ class GameProfile {
     required this.title,
     required this.shortDescription,
     required this.experience,
+    required this.htmlAssetPath,
     required this.mode,
     required this.tempo,
     required this.socialStyle,
@@ -133,6 +134,7 @@ class GameProfile {
   final String title;
   final String shortDescription;
   final String experience;
+  final String htmlAssetPath;
   final GameMode mode;
   final GameTempo tempo;
   final SocialStyle socialStyle;

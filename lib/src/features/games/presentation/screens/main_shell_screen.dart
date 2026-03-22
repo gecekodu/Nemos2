@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../data/mock_game_repository.dart';
 import '../../domain/game_models.dart';
 import '../controllers/builder_controller.dart';
+import 'game_player_screen.dart';
 
 class MainShellScreen extends StatefulWidget {
   const MainShellScreen({
@@ -117,6 +118,14 @@ class _DiscoverTab extends StatelessWidget {
 
   final MockGameRepository repository;
 
+  void _openGame(BuildContext context, GameProfile game) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => GamePlayerScreen(game: game),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return PageView.builder(
@@ -175,7 +184,7 @@ class _DiscoverTab extends StatelessWidget {
                         icon: Icons.whatshot_outlined, value: '${game.score}'),
                     const Spacer(),
                     FilledButton.icon(
-                      onPressed: () {},
+                      onPressed: () => _openGame(context, game),
                       icon: const Icon(Icons.play_arrow),
                       label: const Text('Oyunu Aç'),
                     ),
@@ -198,6 +207,14 @@ class _BuildTab extends StatelessWidget {
 
   final MockGameRepository repository;
   final BuilderController controller;
+
+  void _openGame(BuildContext context, GameProfile game) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => GamePlayerScreen(game: game),
+      ),
+    );
+  }
 
   int _selectedStepCount(BuilderSelection selection) {
     var count = 0;
@@ -421,7 +438,7 @@ class _BuildTab extends StatelessWidget {
                         const SizedBox(width: 12),
                         Expanded(
                           child: FilledButton(
-                            onPressed: () {},
+                            onPressed: () => _openGame(context, generated),
                             child: const Text('Oyunu göster'),
                           ),
                         ),
