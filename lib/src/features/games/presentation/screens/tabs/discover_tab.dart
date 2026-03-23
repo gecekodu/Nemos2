@@ -279,13 +279,14 @@ class _FeedPageState extends State<_FeedPage>
                             ),
                           ],
                         ),
-                      ),
+                      ), // closes Row
                     ],
-                  ),
+                  ), // closes Column
                 ],
-              ),
-            ),
-          ),
+              ), // closes main Column's children
+            ), // closes Container
+          ), // closes GestureDetector
+        ), // closes Expanded
         ],
       ),
     );
