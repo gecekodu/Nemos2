@@ -89,7 +89,7 @@ class _FeedPageState extends State<_FeedPage>
         children: [
           // ─── TOP: Live Game Screen ──────────────────────────────
           Expanded(
-            flex: 83, // Takes up ~83% of the height
+            flex: 74, // reduced from 83 to give more room to bottom
             child: Container(
               margin: const EdgeInsets.only(bottom: 8), // zero margin on top, left, right
               decoration: BoxDecoration(
@@ -125,7 +125,7 @@ class _FeedPageState extends State<_FeedPage>
           // ─── BOTTOM: Native Flutter UI ───────────────────────────
           // Swiping vertically inside this Expanded area will trigger the PageView perfectly
           Expanded(
-            flex: 17, 
+            flex: 26, // Increased from 17 to give more room, fixing the 1.2px overflow
             child: GestureDetector(
               onVerticalDragEnd: (details) {
                 if (details.primaryVelocity != null) {

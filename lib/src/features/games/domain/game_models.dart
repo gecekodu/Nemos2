@@ -86,10 +86,8 @@ class BuilderSelection {
   bool get isComplete =>
       mode != null &&
       tempo != null &&
-      socialStyle != null &&
       theme != null &&
-      skillLevel != null &&
-      sessionLength != null;
+      skillLevel != null;
 
   BuilderSelection copyWith({
     GameMode? mode,

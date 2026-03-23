@@ -44,8 +44,8 @@ class _BuildTabState extends State<BuildTab> {
     FocusScope.of(context).unfocus();
     final currentPage = _pageController.page?.toInt() ?? 0;
     
-    // 0..5 are selection pages, 6 is the ready screen
-    if (currentPage < 6) {
+    // 0..3 are selection pages, 4 is the ready screen
+    if (currentPage < 4) {
       _pageController.nextPage(
         duration: const Duration(milliseconds: 400),
         curve: Curves.fastOutSlowIn,
@@ -134,7 +134,7 @@ class _BuildTabState extends State<BuildTab> {
                 padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
                 child: _ProgressBar(
                   controller: _pageController,
-                  totalSteps: 7, // 6 choices + 1 ready page
+                  totalSteps: 5, // 4 choices + 1 ready page
                 ),
               ),
 
@@ -165,26 +165,6 @@ class _BuildTabState extends State<BuildTab> {
                     },
                   ),
                   _SelectionPage(
-                    title: 'Peki tarzın nedir?',
-                    subtitle: 'Kimlerle oynamak istersin?',
-                    options: SocialStyle.values.map((e) => e.label).toList(),
-                    selectedIndex: selection.socialStyle?.index,
-                    onSelected: (i) {
-                      widget.controller.selectSocialStyle(SocialStyle.values[i]);
-                      _nextStep();
-                    },
-                  ),
-                  _SelectionPage(
-                    title: 'Hangi evrene gidelim?',
-                    subtitle: 'Kurgu ve vizyonu seç.',
-                    options: WorldTheme.values.map((e) => e.label).toList(),
-                    selectedIndex: selection.theme?.index,
-                    onSelected: (i) {
-                      widget.controller.selectTheme(WorldTheme.values[i]);
-                      _nextStep();
-                    },
-                  ),
-                  _SelectionPage(
                     title: 'Zorluk ne seviyede olsun?',
                     subtitle: 'Sınırlarını ne kadar zorlamak istiyorsun?',
                     options: SkillLevel.values.map((e) => e.label).toList(),
@@ -194,18 +174,8 @@ class _BuildTabState extends State<BuildTab> {
                       _nextStep();
                     },
                   ),
-                  _SelectionPage(
-                    title: 'Ne kadar vaktin var?',
-                    subtitle: 'Oyunda harcayacağın seans süresi.',
-                    options: SessionLength.values.map((e) => e.label).toList(),
-                    selectedIndex: selection.sessionLength?.index,
-                    onSelected: (i) {
-                      widget.controller.selectSessionLength(SessionLength.values[i]);
-                      _nextStep();
-                    },
-                  ),
                   
-                  // Step 7: Ready Confirmation Screen
+                  // Step 5: Ready Confirmation Screen
                   _ReadyScreen(
                     selection: selection,
                     onGenerate: _startGeneration,

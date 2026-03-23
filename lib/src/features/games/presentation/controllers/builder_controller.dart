@@ -24,10 +24,6 @@ class BuilderController extends ChangeNotifier {
     _refresh();
   }
 
-  void selectSocialStyle(SocialStyle socialStyle) {
-    _selection = _selection.copyWith(socialStyle: socialStyle);
-    _refresh();
-  }
 
   void selectTheme(WorldTheme theme) {
     _selection = _selection.copyWith(theme: theme);
@@ -39,10 +35,6 @@ class BuilderController extends ChangeNotifier {
     _refresh();
   }
 
-  void selectSessionLength(SessionLength sessionLength) {
-    _selection = _selection.copyWith(sessionLength: sessionLength);
-    _refresh();
-  }
 
   void reset() {
     _selection = const BuilderSelection();
@@ -53,10 +45,8 @@ class BuilderController extends ChangeNotifier {
   void _refresh() {
     if (_selection.mode == null &&
         _selection.tempo == null &&
-        _selection.socialStyle == null &&
         _selection.theme == null &&
-        _selection.skillLevel == null &&
-        _selection.sessionLength == null) {
+        _selection.skillLevel == null) {
       _generated = null;
     } else {
       _generated = _repository.generateForSelection(_selection);

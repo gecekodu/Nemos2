@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Color Jump</title>
+  <style>
+    :root { color-scheme: dark; font-family: "Segoe UI", sans-serif; }
+    body {
+      margin: 0; min-height: 100vh; overflow: hidden;
+      display: grid; place-items: center;
+      background: #111;
+      touch-action: none;
+    }
+    canvas {
+      width: min(100vw, 540px);
+      height: min(100vh, 960px);
+      aspect-ratio: 9/16;
+      background: #1a1a1a;
+      border-radius: 12px;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+      display: block;
+    }
+  </style>
+</head>
+<body>
+<canvas id="game" width="540" height="960"></canvas>
+<script>
+(() => {
+  const canvas = document.getElementById("game");
+  const ctx = canvas.getContext("2d");
+  const W = canvas.width, H = canvas.height;
+  
+  const COLORS = ["#ff0080", "#00eeff", "#ffdd00", "#aa00ff"];
+  
+  let state = {
+    mode: "menu",
+    score: 0,
+    ballY: H - 200,
+    ballVY: 0,
+    cameraY: 0,
+    ballColor: 0,
+    obstacles: [],
+    colorChangers: [],
+    particles: []
+  };
+  
+  function getRndColor() {
+    return Math.floor(Math.random() * COLORS.length);
+  }
+  
+  function resetGame() {
+    state.mode = "playing";
+    state.score = 0;
+    state.ballY = H - 200;
+    state.ballVY = -400; // initial jump
+    state.cameraY = 0;
+    state.ballColor = getRndColor();
+    state.obstacles = [];
+    state.colorChangers = [];
+    state.particles = [];
+    
+    // Initial spawns
+    spawnObstacle(H - 500);
+    spawnObstacle(H - 900);
+  }
+  
+  function spawnObstacle(yPos) {
+    state.obstacles.push({
+      y: yPos,
+      angle: 0,
+      radius: 100,
+      speed: (Math.random() < 0.5 ? 1 : -1) * (1.5 + Math.random()),
+      passed: false
+    });
+    
+    // Spawn color changer 200px above it
+    state.colorChangers.push({
+      y: yPos - 200,
+      color: getRndColor(),
+      active: true
+    });
+  }
+  
+  function jump() {
+    state.ballVY = -550;
+  }
+  
+  function explode() {
+    state.mode = "over";
+    for(let i=0; i<30; i++) {
+        state.particles.push({
+            x: W/2, y: state.ballY,
+            vx: (Math.random()-0.5)*1000,
+            vy: (Math.random()-0.5)*1000,
+            life: 1.0,
+            color: COLORS[state.ballColor]
+        });
+    }
+  }
+
+  function update(dt) {
+    if (state.mode === "playing") {
+      // Ball physics
+      state.ballVY += 1200 * dt; // gravity
+      state.ballY += state.ballVY * dt;
+      
+      // Keep camera centered on ball if moving up
+      const threshold = H / 2;
+      if (state.ballY - state.cameraY < threshold) {
+        const diff = threshold - (state.ballY - state.cameraY);
+        state.cameraY -= diff;
+      }
+      
+      // Fall off bottom = game over
+      if (state.ballY - state.cameraY > H) explode();
+      
+      // Update obstacles
+      state.obstacles.forEach(obs => {
+        obs.angle += obs.speed * dt;
+        
+        // Collision (Ring intersection is roughly ballY == obs.y +- thickness)
+        const thickness = 15;
+        if (!obs.passed) {
+          if (state.ballY < obs.y + thickness && state.ballY > obs.y - thickness) {
+            // Ball is passing through the bottom arch of the ring
+            // The bottom color is the one pointing down (PI/2)
+            // Ring colors are drawn in 4 sections: 0: right, 1: bot, 2: left, 3: top
+            // Normalize angle to find which section is at PI/2
+            let normAngle = (Math.PI/2 - obs.angle) % (Math.PI*2);
+            if (normAngle < 0) normAngle += Math.PI*2;
+            
+            let colorHitIndex = Math.floor((normAngle / (Math.PI/2)) % 4);
+            if (colorHitIndex < 0) colorHitIndex += 4; // safety
+            
+            // Wait, standard ring collision check is complex.
+            // Simplified: if color doesn't match the bottom segment when passing
+            // Actually, we can check distance to Center.
+            // A ring passes through W/2. Ball is at W/2.
+            // The ball hits the Ring exactly when it's at obs.y + radius or obs.y - radius.
+            
+            if (Math.abs(state.ballY - (obs.y + obs.radius)) <= 15) {
+              // Hitting bottom part of ring
+              // Calculate which quad is at bottom
+              let anglePos = (Math.PI/2 - obs.angle) % (Math.PI*2);
+              if (anglePos < 0) anglePos += Math.PI*2;
+              let hitIdx = Math.floor(anglePos / (Math.PI/2));
+              if (hitIdx !== state.ballColor) explode();
+            }
+            if (Math.abs(state.ballY - (obs.y - obs.radius)) <= 15) {
+              // Hitting top part of ring
+              let anglePos = (3*Math.PI/2 - obs.angle) % (Math.PI*2);
+              if (anglePos < 0) anglePos += Math.PI*2;
+              let hitIdx = Math.floor(anglePos / (Math.PI/2));
+              if (hitIdx !== state.ballColor) explode();
+              else {
+                obs.passed = true;
+                state.score++;
+              }
+            }
+          }
+        }
+      });
+      
+      // Check color changers
+      state.colorChangers.forEach(cc => {
+        if (cc.active && Math.abs(state.ballY - cc.y) < 20) {
+          state.ballColor = cc.color;
+          cc.active = false;
+        }
+      });
+      
+      // Spawn new obstacles as we go up
+      if (state.obstacles.length > 0) {
+        let highest = state.obstacles[state.obstacles.length - 1];
+        if (highest.y - state.cameraY > -H) { // if highest is on screen or close
+          spawnObstacle(highest.y - 450);
+        }
+      }
+    }
+    
+    // Particles
+    state.particles.forEach(p => {
+        p.x += p.vx * dt;
+        p.y += p.vy * dt;
+        p.vy += 1500 * dt;
+        p.life -= dt * 1.0;
+    });
+    state.particles = state.particles.filter(p => p.life > 0);
+  }
+
+  function draw() {
+    ctx.clearRect(0,0,W,H);
+    
+    const cy = state.cameraY;
+    
+    // Draw obstacles (Rings)
+    ctx.lineWidth = 15;
+    state.obstacles.forEach(obs => {
+      for(let i=0; i<4; i++) {
+        ctx.beginPath();
+        ctx.strokeStyle = COLORS[i];
+        ctx.arc(W/2, obs.y - cy, obs.radius, obs.angle + i*(Math.PI/2), obs.angle + (i+1)*(Math.PI/2));
+        ctx.stroke();
+      }
+    });
+    
+    // Draw color changers (Star/circle)
+    state.colorChangers.forEach(cc => {
+      if (!cc.active) return;
+      
+      // Simple rotating multicolor circle
+      for(let i=0; i<4; i++) {
+        ctx.fillStyle = COLORS[i];
+        ctx.beginPath();
+        ctx.arc(W/2, cc.y - cy, 15, i*(Math.PI/2), (i+1)*(Math.PI/2));
+        ctx.lineTo(W/2, cc.y - cy);
+        ctx.fill();
+      }
+    });
+
+    // Draw Ball
+    if (state.mode === "playing" || state.mode === "menu") {
+      ctx.fillStyle = COLORS[state.ballColor];
+      ctx.beginPath();
+      ctx.arc(W/2, state.ballY - cy, 12, 0, Math.PI*2);
+      ctx.fill();
+    }
+    
+    // Particles
+    state.particles.forEach(p => {
+        ctx.fillStyle = p.color;
+        ctx.globalAlpha = p.life;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y - cy, 5, 0, Math.PI*2);
+        ctx.fill();
+        ctx.globalAlpha = 1.0;
+    });
+
+    // Score
+    ctx.fillStyle = "white";
+    ctx.font = "800 50px Segoe UI";
+    ctx.textAlign = "center";
+    ctx.fillText(state.score, 40, 60);
+    ctx.textAlign = "left";
+    
+    if (state.mode === "over") {
+      ctx.fillStyle = "rgba(0,0,0,0.7)";
+      ctx.fillRect(0,0,W,H);
+      ctx.fillStyle = "white";
+      ctx.textAlign = "center";
+      ctx.font = "800 46px Segoe UI";
+      ctx.fillText("OYUN BİTTİ", W/2, H/2 - 40);
+      ctx.font = "600 30px Segoe UI";
+      ctx.fillText("Skor: " + state.score, W/2, H/2 + 20);
+      ctx.font = "600 24px Segoe UI";
+      ctx.fillText("Devam İçin Dokun", W/2, H/2 + 80);
+      ctx.textAlign = "left";
+    }
+  }
+
+  function handleInput() {
+    if (state.mode === "playing") jump();
+    else if (state.mode === "over" || state.mode === "menu") resetGame();
+  }
+
+  canvas.addEventListener("pointerdown", handleInput);
+  window.addEventListener("keydown", (e) => {
+    if (e.key === " " || e.key === "Enter" || e.key === "ArrowUp") handleInput();
+  });
+
+  let prev = performance.now();
+  function frame(now) {
+    const dt = Math.min(0.05, (now - prev) / 1000);
+    prev = now;
+    update(dt);
+    draw();
+    requestAnimationFrame(frame);
+  }
+  
+  if (!window.autoStartedNemos) {
+    window.autoStartedNemos = true;
+    resetGame();
+  }
+  
+  requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>

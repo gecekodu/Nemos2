@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Block Runner</title>
+  <style>
+    :root { color-scheme: dark; font-family: "Segoe UI", sans-serif; }
+    body {
+      margin: 0; min-height: 100vh; overflow: hidden;
+      display: grid; place-items: center;
+      background: radial-gradient(circle at 50% 10%, #2f1754, #080311 80%);
+      touch-action: none;
+    }
+    canvas {
+      width: min(100vw, 540px);
+      height: min(100vh, 960px);
+      aspect-ratio: 9/16;
+      background: #0d0617;
+      border-radius: 12px;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+      display: block;
+    }
+  </style>
+</head>
+<body>
+<canvas id="game" width="540" height="960"></canvas>
+<script>
+(() => {
+  const canvas = document.getElementById("game");
+  const ctx = canvas.getContext("2d");
+  const W = canvas.width, H = canvas.height;
+  
+  // Fake 3D projection parameters
+  const fov = 350;
+  const cameraZ = -200;
+  const cameraY = 180;
+  
+  let state = {
+    mode: "menu",
+    score: 0,
+    speed: 300,        // Speed of world moving towards player
+    lane: 0,           // Player lane: -1 (left), 0 (center), 1 (right)
+    targetLane: 0,
+    playerX: 0,        // Animated lane position
+    playerY: 0,        // Jump height
+    velocityY: 0,      // Jump velocity
+    isJumping: false,
+    obstacles: [],
+    particles: [],
+    distance: 0,
+    spawnTimer: 0
+  };
+  
+  const laneWidth = 140;
+  
+  function resetGame() {
+    state.mode = "playing";
+    state.score = 0;
+    state.speed = 350;
+    state.lane = 0;
+    state.targetLane = 0;
+    state.playerX = 0;
+    state.playerY = 0;
+    state.velocityY = 0;
+    state.isJumping = false;
+    state.obstacles = [];
+    state.particles = [];
+    state.distance = 0;
+    state.spawnTimer = 1;
+  }
+  
+  function spawnObstacle() {
+    const type = Math.random() < 0.3 ? "tall" : "block"; // tall = must change lane, block = can jump
+    const possibleLanes = [-1, 0, 1];
+    const lane = possibleLanes[Math.floor(Math.random() * 3)];
+    
+    state.obstacles.push({
+      lane: lane,
+      z: 1200,   // Far away
+      type: type,
+      passed: false
+    });
+    
+    // Sometimes spawn double obstacle at high speeds
+    if (state.speed > 500 && Math.random() > 0.6) {
+      const remainingLanes = possibleLanes.filter(l => l !== lane);
+      const lane2 = remainingLanes[Math.floor(Math.random() * 2)];
+      state.obstacles.push({
+        lane: lane2,
+        z: 1200 + (Math.random() * 100), // Slightly offset
+        type: "block",
+        passed: false
+      });
+    }
+  }
+
+  function spawnParticles(x, y, z, color) {
+    for (let i = 0; i < 15; i++) {
+        state.particles.push({
+            x: x + (Math.random() - 0.5) * 50,
+            y: y + (Math.random() - 0.5) * 50,
+            z: z,
+            vx: (Math.random() - 0.5) * 100,
+            vy: (Math.random() - 0.5) * 100,
+            vz: (Math.random() - 0.5) * 100,
+            life: 1.0,
+            color: color
+        });
+    }
+  }
+
+  function update(dt) {
+    if (state.mode !== "playing") return;
+    
+    // Difficulty ramp
+    state.speed += dt * 5;
+    state.distance += state.speed * dt;
+    
+    // Spawning logic
+    state.spawnTimer -= dt;
+    if (state.spawnTimer <= 0) {
+      spawnObstacle();
+      state.spawnTimer = Math.max(0.6, 2.5 - (state.speed / 300));
+    }
+    
+    // Animate Lane change
+    const targetX = state.targetLane * laneWidth;
+    state.playerX += (targetX - state.playerX) * 15 * dt;
+    
+    // Jump Physics
+    if (state.isJumping) {
+      state.playerY += state.velocityY * dt;
+      state.velocityY -= 1500 * dt; // Gravity
+      
+      if (state.playerY <= 0) {
+        state.playerY = 0;
+        state.isJumping = false;
+        state.velocityY = 0;
+      }
+    }
+    
+    // Obstacles
+    for (let i = state.obstacles.length - 1; i >= 0; i--) {
+      let obs = state.obstacles[i];
+      obs.z -= state.speed * dt;
+      
+      // Collision check (Player is at Z=0)
+      if (obs.z < 30 && obs.z > -30) {
+        if (!obs.passed) {
+          // Check collision
+          const isSameLane = Math.abs(state.playerX - obs.lane * laneWidth) < laneWidth * 0.6;
+          
+          let jumpedOver = false;
+          if (obs.type === "block" && state.playerY > 60) {
+            jumpedOver = true;
+          }
+          
+          if (isSameLane && !jumpedOver) {
+            state.mode = "over"; // Hit!
+            spawnParticles(state.playerX, 0, 0, "#ff3366");
+          } else {
+            obs.passed = true;
+            state.score += 10;
+          }
+        }
+      }
+      
+      if (obs.z < -200) {
+        state.obstacles.splice(i, 1);
+      }
+    }
+
+    // Particles
+    for (let i = state.particles.length-1; i>=0; i--) {
+        let p = state.particles[i];
+        p.x += p.vx * dt;
+        p.y += p.vy * dt;
+        p.z += p.vz * dt;
+        p.vz -= state.speed * dt;
+        p.life -= dt * 1.5;
+        if(p.life <= 0) state.particles.splice(i, 1);
+    }
+  }
+  
+  function project(x, y, z) {
+    const scale = fov / (fov + z - cameraZ);
+    return {
+      x: W/2 + x * scale,
+      y: H/2 + (y - cameraY) * scale,
+      scale: scale
+    };
+  }
+  
+  // Simplified 3D box drawing
+  function drawBox(x, y, z, width, height, depth, colorFront, colorTop, colorSide) {
+    const pt1 = project(x - width/2, y, z - depth/2); // bottom-front-left
+    const pt2 = project(x + width/2, y, z - depth/2); // bottom-front-right
+    const pt3 = project(x + width/2, y - height, z - depth/2); // top-front-right
+    const pt4 = project(x - width/2, y - height, z - depth/2); // top-front-left
+    
+    const pb1 = project(x - width/2, y, z + depth/2); // bottom-back-left
+    const pb2 = project(x + width/2, y, z + depth/2); // bottom-back-right
+    const pb3 = project(x + width/2, y - height, z + depth/2); // top-back-right
+    const pb4 = project(x - width/2, y - height, z + depth/2); // top-back-left
+    
+    // Front face
+    ctx.fillStyle = colorFront;
+    ctx.beginPath();
+    ctx.moveTo(pt1.x, pt1.y); ctx.lineTo(pt2.x, pt2.y);
+    ctx.lineTo(pt3.x, pt3.y); ctx.lineTo(pt4.x, pt4.y);
+    ctx.fill();
+    
+    // Top face
+    ctx.fillStyle = colorTop;
+    ctx.beginPath();
+    ctx.moveTo(pt4.x, pt4.y); ctx.lineTo(pt3.x, pt3.y);
+    ctx.lineTo(pb3.x, pb3.y); ctx.lineTo(pb4.x, pb4.y);
+    ctx.fill();
+    
+    // Side face (right)
+    if (x >= 0) {
+      ctx.fillStyle = colorSide;
+      ctx.beginPath();
+      ctx.moveTo(pt2.x, pt2.y); ctx.lineTo(pb2.x, pb2.y);
+      ctx.lineTo(pb3.x, pb3.y); ctx.lineTo(pt3.x, pt3.y);
+      ctx.fill();
+    } else { // Side face (left)
+      ctx.fillStyle = colorSide;
+      ctx.beginPath();
+      ctx.moveTo(pt1.x, pt1.y); ctx.lineTo(pb1.x, pb1.y);
+      ctx.lineTo(pb4.x, pb4.y); ctx.lineTo(pt4.x, pt4.y);
+      ctx.fill();
+    }
+  }
+  
+  function draw() {
+    // Background gradient
+    const grad = ctx.createLinearGradient(0,0,0,H);
+    grad.addColorStop(0, "#080311");
+    grad.addColorStop(0.6, "#2f1754");
+    grad.addColorStop(1, "#0d0617");
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, W, H);
+    
+    // Draw Floor grid (moving)
+    ctx.strokeStyle = "rgba(100, 50, 200, 0.4)";
+    ctx.lineWidth = 2;
+    // vertical lines
+    for (let l = -2; l <= 2; l++) {
+      const pTop = project(l * laneWidth, 0, 2000);
+      const pBot = project(l * laneWidth, 0, -200);
+      ctx.beginPath();
+      ctx.moveTo(pTop.x, pTop.y);
+      ctx.lineTo(pBot.x, pBot.y);
+      ctx.stroke();
+    }
+    // horizontal lines
+    const offset = (state.distance % 200);
+    for (let z = -200 - offset; z <= 2000; z += 200) {
+      const pL = project(-2 * laneWidth, 0, z);
+      const pR = project(2 * laneWidth, 0, z);
+      ctx.beginPath();
+      ctx.moveTo(pL.x, pL.y);
+      ctx.lineTo(pR.x, pR.y);
+      ctx.stroke();
+    }
+    
+    // Sort everything by Z depth (Painters algorithm)
+    let renderables = [];
+    
+    // Player
+    if (state.mode === "playing" || state.mode === "menu") {
+      renderables.push({
+        type: "player",
+        z: 0,
+        x: state.playerX,
+        y: state.playerY
+      });
+    }
+    
+    // Obstacles
+    state.obstacles.forEach(obs => {
+      renderables.push({
+        type: "obstacle",
+        obs: obs,
+        z: obs.z,
+        x: obs.lane * laneWidth
+      });
+    });
+
+    // Particles
+    state.particles.forEach(p => {
+        renderables.push({type: "particle", p:p, z:p.z});
+    });
+    
+    renderables.sort((a,b) => b.z - a.z); // Render far to near
+    
+    renderables.forEach(item => {
+      if (item.type === "obstacle") {
+        const h = item.obs.type === "tall" ? 220 : 80;
+        const colorMain = item.obs.type === "tall" ? "#ff2a55" : "#ff00d4";
+        drawBox(item.x, 0, item.z, 100, h, 60, colorMain, "#ff7db2", "#990044");
+      }
+      else if (item.type === "player") {
+        // Player is orange block
+        drawBox(item.x, item.y, item.z, 70, 70, 70, "#ff8800", "#ffbb44", "#d55e00");
+      }
+      else if (item.type === "particle") {
+        const p = project(item.p.x, item.p.y, item.p.z);
+        if (p.scale > 0) {
+            ctx.fillStyle = item.p.color;
+            ctx.globalAlpha = Math.max(0, item.p.life);
+            ctx.fillRect(p.x, p.y - 100*p.scale, 20*p.scale, 20*p.scale);
+            ctx.globalAlpha = 1.0;
+        }
+      }
+    });
+    
+    // HUD
+    ctx.fillStyle = "white";
+    ctx.font = "800 36px Segoe UI";
+    ctx.fillText(Math.floor(state.score), 20, 50);
+    
+    if (state.mode === "over") {
+      ctx.fillStyle = "rgba(0,0,0,0.7)";
+      ctx.fillRect(0,0,W,H);
+      ctx.fillStyle = "red";
+      ctx.font = "800 50px Segoe UI";
+      ctx.textAlign = "center";
+      ctx.fillText("BÜYÜK ÇARPIŞMA", W/2, H/2 - 50);
+      ctx.fillStyle = "white";
+      ctx.font = "600 30px Segoe UI";
+      ctx.fillText("Skor: " + Math.floor(state.score), W/2, H/2 + 20);
+      ctx.font = "600 24px Segoe UI";
+      ctx.fillText("Tekrar Oyna", W/2, H/2 + 90);
+      ctx.textAlign = "left";
+    }
+  }
+
+  // Input Handling
+  let touchStartX = 0;
+  let touchStartY = 0;
+  
+  canvas.addEventListener("pointerdown", (e) => {
+    if (state.mode === "menu" || state.mode === "over") {
+      resetGame();
+      return;
+    }
+    touchStartX = e.clientX;
+    touchStartY = e.clientY;
+  });
+  
+  canvas.addEventListener("pointerup", (e) => {
+    if (state.mode !== "playing") return;
+    
+    const dx = e.clientX - touchStartX;
+    const dy = e.clientY - touchStartY;
+    
+    if (Math.abs(dx) > Math.abs(dy)) {
+      // Horizontal swipe
+      if (Math.abs(dx) > 30) {
+        if (dx > 0 && state.targetLane < 1) state.targetLane++;
+        if (dx < 0 && state.targetLane > -1) state.targetLane--;
+      }
+    } else {
+      // Vertical swipe
+      if (dy < -30 && !state.isJumping) {
+        state.isJumping = true;
+        state.velocityY = 800;
+      }
+    }
+  });
+
+  window.addEventListener("keydown", (e) => {
+    if (state.mode !== "playing") {
+      if (e.key === " " || e.key === "Enter") resetGame();
+      return;
+    }
+    if (e.key === "ArrowLeft" || e.key === "a") if (state.targetLane > -1) state.targetLane--;
+    if (e.key === "ArrowRight" || e.key === "d") if (state.targetLane < 1) state.targetLane++;
+    if (e.key === "ArrowUp" || e.key === "w" || e.key === " ") {
+      if (!state.isJumping) {
+        state.isJumping = true;
+        state.velocityY = 800;
+      }
+    }
+  });
+
+  let prev = performance.now();
+  function frame(now) {
+    const dt = Math.min(0.05, (now - prev) / 1000);
+    prev = now;
+    update(dt);
+    draw();
+    requestAnimationFrame(frame);
+  }
+  
+  if (!window.autoStartedNemos) {
+    window.autoStartedNemos = true;
+    resetGame();
+  }
+  
+  requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>

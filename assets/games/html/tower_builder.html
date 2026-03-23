@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Tower Builder</title>
+  <style>
+    :root { color-scheme: dark; font-family: "Segoe UI", sans-serif; }
+    body {
+      margin: 0; min-height: 100vh; overflow: hidden;
+      display: grid; place-items: center;
+      background: linear-gradient(135deg, #150935, #0a031a);
+      touch-action: none;
+    }
+    canvas {
+      width: min(100vw, 540px);
+      height: min(100vh, 960px);
+      aspect-ratio: 9/16;
+      background: transparent;
+      border-radius: 12px;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+      display: block;
+    }
+  </style>
+</head>
+<body>
+<canvas id="game" width="540" height="960"></canvas>
+<script>
+(() => {
+  const canvas = document.getElementById("game");
+  const ctx = canvas.getContext("2d");
+  const W = canvas.width, H = canvas.height;
+  
+  const blockH = 40;
+  
+  let state = {
+    mode: "menu",
+    score: 0,
+    cameraY: 0,
+    blocks: [],
+    movingBlock: null,
+    debris: [],
+    combo: 0
+  };
+  
+  const colors = [
+    "#ff3366", "#aa00ff", "#33ccff", "#00ff66", "#ffaa00", "#ff0000"
+  ];
+  
+  function getBlockColor(index) {
+    return colors[index % colors.length];
+  }
+  
+  function resetGame() {
+    state.mode = "playing";
+    state.score = 0;
+    state.cameraY = 0;
+    state.combo = 0;
+    state.debris = [];
+    
+    // Base block
+    state.blocks = [{
+      x: W/2,
+      y: H - 100,
+      w: 240,
+      h: blockH,
+      color: getBlockColor(0)
+    }];
+    
+    spawnMovingBlock();
+  }
+  
+  function spawnMovingBlock() {
+    const last = state.blocks[state.blocks.length - 1];
+    const topY = last.y - blockH;
+    const speed = 200 + (state.score * 10);
+    const dir = state.score % 2 === 0 ? 1 : -1;
+    
+    state.movingBlock = {
+      x: dir === 1 ? -last.w : W + last.w,
+      y: topY,
+      w: last.w,
+      h: blockH,
+      vx: speed * dir,
+      color: getBlockColor(state.blocks.length)
+    };
+  }
+  
+  function dropBlock() {
+    const mb = state.movingBlock;
+    const last = state.blocks[state.blocks.length - 1];
+    
+    const diff = mb.x - last.x;
+    const absDiff = Math.abs(diff);
+    
+    if (absDiff > last.w) {
+      // Complete miss
+      state.mode = "over";
+      mb.vy = 0;
+      state.debris.push({...mb, vy: 200, rx: diff/100});
+      state.movingBlock = null;
+      return;
+    }
+    
+    if (absDiff < 8) {
+      // Perfect match!
+      mb.x = last.x;
+      mb.w = last.w;
+      state.combo++;
+      if (state.combo > 3) mb.w = Math.min(240, mb.w + 10); // expand slightly on mega combo
+    } else {
+      state.combo = 0;
+      // Slice block
+      const newW = last.w - absDiff;
+      const leftoverW = absDiff;
+      const overX = diff > 0 ? last.x + last.w/2 + leftoverW/2 : last.x - last.w/2 - leftoverW/2;
+      
+      mb.w = newW;
+      mb.x = diff > 0 ? last.x + absDiff/2 : last.x - absDiff/2;
+      
+      // Debris piece
+      state.debris.push({
+        x: overX,
+        y: mb.y,
+        w: leftoverW,
+        h: blockH,
+        vx: diff > 0 ? 100 : -100,
+        vy: 150,
+        color: mb.color,
+        rx: (Math.random()-0.5)
+      });
+    }
+    
+    state.blocks.push({...mb});
+    state.score++;
+    
+    // Move camera up
+    state.cameraY = Math.max(0, (state.blocks.length - 10) * blockH);
+    
+    spawnMovingBlock();
+  }
+
+  function update(dt) {
+    if (state.mode === "playing" && state.movingBlock) {
+      state.movingBlock.x += state.movingBlock.vx * dt;
+      // bounce on edges
+      if (state.movingBlock.x > W + 50 || state.movingBlock.x < -50) {
+        state.movingBlock.vx *= -1;
+      }
+    }
+    
+    // debris physics
+    state.debris.forEach(d => {
+      d.x += d.vx * dt;
+      d.y += d.vy * dt;
+      d.vy += 800 * dt; // gravity
+    });
+  }
+
+  function draw() {
+    ctx.clearRect(0,0,W,H);
+    
+    // Draw background particles / grid optional
+    ctx.fillStyle = "rgba(255,255,255,0.05)";
+    for(let i=0; i<W; i+=60) ctx.fillRect(i, 0, 1, H);
+    
+    const camOffset = state.cameraY;
+    
+    function drawBlockPoly(b) {
+      // fake 3D isometricish
+      const topOffset = 20;
+      
+      ctx.fillStyle = b.color;
+      ctx.fillRect(b.x - b.w/2, b.y - camOffset, b.w, b.h);
+      
+      // Top face
+      ctx.beginPath();
+      ctx.moveTo(b.x - b.w/2, b.y - camOffset);
+      ctx.lineTo(b.x - b.w/2 + topOffset, b.y - topOffset - camOffset);
+      ctx.lineTo(b.x + b.w/2 + topOffset, b.y - topOffset - camOffset);
+      ctx.lineTo(b.x + b.w/2, b.y - camOffset);
+      ctx.fillStyle = "rgba(255,255,255,0.3)";
+      ctx.fill();
+      
+      // Side face
+      ctx.beginPath();
+      ctx.moveTo(b.x + b.w/2, b.y - camOffset);
+      ctx.lineTo(b.x + b.w/2 + topOffset, b.y - topOffset - camOffset);
+      ctx.lineTo(b.x + b.w/2 + topOffset, b.y + b.h - topOffset - camOffset);
+      ctx.lineTo(b.x + b.w/2, b.y + b.h - camOffset);
+      ctx.fillStyle = "rgba(0,0,0,0.3)";
+      ctx.fill();
+    }
+    
+    state.blocks.forEach(drawBlockPoly);
+    
+    if (state.movingBlock) drawBlockPoly(state.movingBlock);
+    
+    // Draw debris
+    state.debris.forEach(d => {
+      ctx.save();
+      ctx.translate(d.x, d.y - camOffset);
+      ctx.rotate(d.rx * (state.debris.indexOf(d)+1));
+      drawBlockPoly({x:0, y:0, w:d.w, h:d.h, color:d.color});
+      ctx.restore();
+    });
+    
+    // HUD
+    ctx.fillStyle = "white";
+    ctx.font = "800 50px Segoe UI";
+    ctx.textAlign = "center";
+    ctx.fillText(state.score, W/2, 80);
+    
+    if (state.combo > 1) {
+      ctx.fillStyle = "#ff0066";
+      ctx.font = "900 30px Segoe UI";
+      ctx.fillText("COMBO x" + state.combo, W/2, 120);
+    }
+    
+    if (state.mode === "over") {
+      ctx.fillStyle = "rgba(0,0,0,0.8)";
+      ctx.fillRect(0,0,W,H);
+      ctx.fillStyle = "white";
+      ctx.font = "800 46px Segoe UI";
+      ctx.fillText("KÜLE YIKILDI", W/2, H/2 - 40);
+      ctx.font = "600 30px Segoe UI";
+      ctx.fillText("Skor: " + state.score, W/2, H/2 + 20);
+      ctx.font = "600 24px Segoe UI";
+      ctx.fillText("Tekrar Oyna", W/2, H/2 + 80);
+    }
+    ctx.textAlign = "left";
+  }
+
+  canvas.addEventListener("pointerdown", () => {
+    if (state.mode === "playing") dropBlock();
+    else if (state.mode === "over" || state.mode === "menu") resetGame();
+  });
+  
+  window.addEventListener("keydown", (e) => {
+    if (e.key === " " || e.key === "Enter") {
+      if (state.mode === "playing") dropBlock();
+      else resetGame();
+    }
+  });
+
+  let prev = performance.now();
+  function frame(now) {
+    const dt = Math.min(0.05, (now - prev) / 1000);
+    prev = now;
+    update(dt);
+    draw();
+    requestAnimationFrame(frame);
+  }
+  
+  if (!window.autoStartedNemos) {
+    window.autoStartedNemos = true;
+    resetGame();
+  }
+  
+  requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../../data/mock_game_repository.dart';
 import '../controllers/builder_controller.dart';
@@ -38,7 +39,39 @@ class _MainShellScreenState extends State<MainShellScreen> {
       ProfileTab(repository: widget.repository),
     ];
 
-    return Scaffold(
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) async {
+        if (didPop) return;
+
+        if (currentIndex != 0) {
+          setState(() => currentIndex = 0);
+          return;
+        }
+
+        final shouldPop = await showDialog<bool>(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: const Text('Çıkış'),
+            content: const Text('Uygulamadan çıkmak istediğinize emin misiniz?'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(false),
+                child: const Text('İptal'),
+              ),
+              FilledButton(
+                onPressed: () => Navigator.of(context).pop(true),
+                child: const Text('Çık'),
+              ),
+            ],
+          ),
+        );
+
+        if (shouldPop ?? false) {
+          SystemNavigator.pop();
+        }
+      },
+      child: Scaffold(
       body: SafeArea(
         child: IndexedStack(index: currentIndex, children: pages),
       ),
@@ -68,6 +101,7 @@ class _MainShellScreenState extends State<MainShellScreen> {
           ),
         ],
       ),
-    );
+    ); // closes Scaffold
+    ); // closes PopScope
   }
 }
