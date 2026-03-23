@@ -39,7 +39,7 @@
       const height = canvas.height;
 
       const state = {
-        mode: "menu",
+        mode: "playing",
         score: 0,
         health: 3,
         elapsed: 0,
@@ -169,7 +169,7 @@
         ctx.fillStyle = "#d6e2ff";
         ctx.fillText("Sol/Sağ ile şerit değiştir", 110, 340);
         ctx.fillText("Mavi küreden kaç, turuncuyu topla", 72, 386);
-        ctx.fillText("Başlamak için Space veya dokun", 82, 432);
+        // ctx.fillText( 82, 432);
 
         drawPlayer();
       }
@@ -281,7 +281,14 @@
         prev = now;
         update(dt);
         draw();
-        rafId = requestAnimationFrame(frame);
+        rafId = 
+      if (!window.autoStartedNemos) {
+        window.autoStartedNemos = true;
+        if (typeof resetGame === 'function') resetGame();
+        if (typeof init === 'function') { init(); if (typeof gameState !== 'undefined') gameState = 'PLAYING'; }
+      }
+
+      requestAnimationFrame(frame);
       }
 
       function renderGameToText() {
@@ -307,7 +314,14 @@
       };
 
       draw();
-      rafId = requestAnimationFrame(frame);
+      rafId = 
+      if (!window.autoStartedNemos) {
+        window.autoStartedNemos = true;
+        if (typeof resetGame === 'function') resetGame();
+        if (typeof init === 'function') { init(); if (typeof gameState !== 'undefined') gameState = 'PLAYING'; }
+      }
+
+      requestAnimationFrame(frame);
 
       window.addEventListener("beforeunload", () => cancelAnimationFrame(rafId));
     })();

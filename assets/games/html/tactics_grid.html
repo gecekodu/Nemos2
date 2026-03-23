@@ -39,7 +39,7 @@
       const maxTurns = 24;
 
       const state = {
-        mode: "menu",
+        mode: "playing",
         grid: [],
         turn: 1,
         enemyTimer: 0,
@@ -159,7 +159,7 @@
         ctx.font = "500 28px Segoe UI";
         ctx.fillText("Boş komşu kareyi fethet", 130, 340);
         ctx.fillText("24 tur sonunda alanı koru", 118, 380);
-        ctx.fillText("Başla: Space veya dokun", 108, 420);
+        // ctx.fillText( 108, 420);
       }
 
       function drawHud() {
@@ -270,7 +270,14 @@
         prev = now;
         update(dt);
         draw();
-        requestAnimationFrame(frame);
+        
+      if (!window.autoStartedNemos) {
+        window.autoStartedNemos = true;
+        if (typeof resetGame === 'function') resetGame();
+        if (typeof init === 'function') { init(); if (typeof gameState !== 'undefined') gameState = 'PLAYING'; }
+      }
+
+      requestAnimationFrame(frame);
       }
 
       function renderGameToText() {
@@ -293,6 +300,13 @@
       };
 
       draw();
+      
+      if (!window.autoStartedNemos) {
+        window.autoStartedNemos = true;
+        if (typeof resetGame === 'function') resetGame();
+        if (typeof init === 'function') { init(); if (typeof gameState !== 'undefined') gameState = 'PLAYING'; }
+      }
+
       requestAnimationFrame(frame);
     })();
   </script>

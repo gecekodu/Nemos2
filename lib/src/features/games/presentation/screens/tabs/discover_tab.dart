@@ -30,12 +30,12 @@ class _DiscoverTabState extends State<DiscoverTab> {
     return PageView.builder(
       controller: _pageController,
       scrollDirection: Axis.vertical,
-      // PageScrollPhysics is perfect for full-page snap scrolling (like Reels/TikTok)
-      physics: const PageScrollPhysics(),
+      // PageScrollPhysics replaced with NeverScrollableScrollPhysics to prevent swipe conflict
+      physics: const NeverScrollableScrollPhysics(),
       itemCount: widget.repository.featuredGames.length,
       itemBuilder: (context, index) {
         final game = widget.repository.featuredGames[index];
-        return _FeedPage(game: game);
+        return _FeedPage(game: game, pageController: _pageController);
       },
     );
   }
@@ -43,9 +43,13 @@ class _DiscoverTabState extends State<DiscoverTab> {
 
 /// A single feed page with game on top 70% and native UI on bottom 30%
 class _FeedPage extends StatefulWidget {
-  const _FeedPage({required this.game});
+  const _FeedPage({
+    required this.game,
+    required this.pageController,
+  });
 
   final GameProfile game;
+  final PageController pageController;
 
   @override
   State<_FeedPage> createState() => _FeedPageState();
@@ -85,35 +89,35 @@ class _FeedPageState extends State<_FeedPage>
         children: [
           // ─── TOP: Live Game Screen ──────────────────────────────
           Expanded(
-            flex: 75, // Takes up ~75% of the height
-            child: SafeArea(
-              bottom: false,
-              child: Container(
-                margin: const EdgeInsets.only(top: 16, left: 16, right: 16, bottom: 8),
-                decoration: BoxDecoration(
-                  color: Colors.black,
-                  borderRadius: BorderRadius.circular(32),
-                  boxShadow: [
-                    BoxShadow(
-                      color: theme.primaryColor.withValues(alpha: 0.15),
-                      blurRadius: 20,
-                      offset: const Offset(0, 10),
-                    ),
-                  ],
-                ),
-                clipBehavior: Clip.antiAlias,
-                child: Stack(
-                  children: [
-                    // Always live WebView handling its own touches
-                    Positioned.fill(
+            flex: 83, // Takes up ~83% of the height
+            child: Container(
+              margin: const EdgeInsets.only(bottom: 8), // zero margin on top, left, right
+              decoration: BoxDecoration(
+                color: Colors.black,
+                borderRadius: const BorderRadius.vertical(bottom: Radius.circular(32)),
+                boxShadow: [
+                  BoxShadow(
+                    color: theme.primaryColor.withValues(alpha: 0.15),
+                    blurRadius: 20,
+                    offset: const Offset(0, 10),
+                  ),
+                ],
+              ),
+              clipBehavior: Clip.antiAlias,
+              child: Stack(
+                children: [
+                  // Always live WebView handling its own touches
+                  Positioned.fill(
+                    child: SafeArea(
+                      bottom: false,
                       child: WebViewWidget(controller: _controller),
                     ),
-                    if (_isLoading)
-                      const Center(
-                        child: CircularProgressIndicator(color: Colors.white),
-                      ),
-                  ],
-                ),
+                  ),
+                  if (_isLoading)
+                    const Center(
+                      child: CircularProgressIndicator(color: Colors.white),
+                    ),
+                ],
               ),
             ),
           ),
@@ -121,12 +125,29 @@ class _FeedPageState extends State<_FeedPage>
           // ─── BOTTOM: Native Flutter UI ───────────────────────────
           // Swiping vertically inside this Expanded area will trigger the PageView perfectly
           Expanded(
-            flex: 25, 
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16.0),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
+            flex: 17, 
+            child: GestureDetector(
+              onVerticalDragEnd: (details) {
+                if (details.primaryVelocity != null) {
+                  if (details.primaryVelocity! < -300) {
+                    widget.pageController.nextPage(
+                      duration: const Duration(milliseconds: 300),
+                      curve: Curves.easeOut,
+                    );
+                  } else if (details.primaryVelocity! > 300) {
+                    widget.pageController.previousPage(
+                      duration: const Duration(milliseconds: 300),
+                      curve: Curves.easeOut,
+                    );
+                  }
+                }
+              },
+              child: Container(
+                color: Colors.transparent, // Required to catch drag events in empty spaces
+                padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
                   // 1. Stats row in a rounded outlined box
                   Container(
                     padding: const EdgeInsets.symmetric(vertical: 12),
