@@ -3,10 +3,10 @@ import 'package:flutter/services.dart';
 
 class AppTheme {
   // Brand colors
-  static const Color primary = Color(0xFF6366F1);       // Indigo
+  static const Color primary = Color(0xFF6366F1); // Indigo
   static const Color primaryLight = Color(0xFFEEF2FF);
-  static const Color secondary = Color(0xFF0EA5E9);     // Sky blue
-  static const Color accent = Color(0xFF8B5CF6);        // Violet
+  static const Color secondary = Color(0xFF0EA5E9); // Sky blue
+  static const Color accent = Color(0xFF8B5CF6); // Violet
 
   static ThemeData light() {
     const background = Color(0xFFF8FAFF);
@@ -155,12 +155,13 @@ class AppTheme {
         surfaceTintColor: Colors.transparent,
         shadowColor: Colors.black12,
         elevation: 8,
+        height: 92,
         indicatorColor: primaryLight,
         labelTextStyle: WidgetStateProperty.resolveWith((states) {
           final selected = states.contains(WidgetState.selected);
           return TextStyle(
             fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
-            fontSize: 11,
+            fontSize: selected ? 11.5 : 10.5,
             color: selected ? primary : textSecondary,
           );
         }),
@@ -168,7 +169,6 @@ class AppTheme {
           final selected = states.contains(WidgetState.selected);
           return IconThemeData(
             color: selected ? primary : textSecondary,
-            size: selected ? 26 : 24,
           );
         }),
       ),

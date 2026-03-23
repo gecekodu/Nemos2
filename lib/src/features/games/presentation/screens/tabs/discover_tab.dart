@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 
-import '../../../domain/game_models.dart';
 import '../../../data/mock_game_repository.dart';
+import '../../../domain/game_models.dart';
 
 class DiscoverTab extends StatefulWidget {
   const DiscoverTab({
@@ -30,38 +30,50 @@ class _DiscoverTabState extends State<DiscoverTab> {
     return PageView.builder(
       controller: _pageController,
       scrollDirection: Axis.vertical,
-      // PageScrollPhysics replaced with NeverScrollableScrollPhysics to prevent swipe conflict
       physics: const NeverScrollableScrollPhysics(),
       itemCount: widget.repository.featuredGames.length,
       itemBuilder: (context, index) {
         final game = widget.repository.featuredGames[index];
-        return _FeedPage(game: game, pageController: _pageController);
+        final creator =
+            widget.repository.friends[index % widget.repository.friends.length];
+        return _DiscoverGamePage(
+          game: game,
+          creator: creator,
+          pageController: _pageController,
+          pageCount: widget.repository.featuredGames.length,
+          index: index,
+        );
       },
     );
   }
 }
 
-/// A single feed page with game on top 70% and native UI on bottom 30%
-class _FeedPage extends StatefulWidget {
-  const _FeedPage({
+class _DiscoverGamePage extends StatefulWidget {
+  const _DiscoverGamePage({
     required this.game,
+    required this.creator,
     required this.pageController,
+    required this.pageCount,
+    required this.index,
   });
 
   final GameProfile game;
+  final FriendProfile creator;
   final PageController pageController;
+  final int pageCount;
+  final int index;
 
   @override
-  State<_FeedPage> createState() => _FeedPageState();
+  State<_DiscoverGamePage> createState() => _DiscoverGamePageState();
 }
 
-class _FeedPageState extends State<_FeedPage>
+class _DiscoverGamePageState extends State<_DiscoverGamePage>
     with AutomaticKeepAliveClientMixin {
   late final WebViewController _controller;
   bool _isLoading = true;
 
   @override
-  bool get wantKeepAlive => true; // Keep instance alive when swiping back and forth
+  bool get wantKeepAlive => true;
 
   @override
   void initState() {
@@ -69,267 +81,322 @@ class _FeedPageState extends State<_FeedPage>
     _controller = WebViewController()
       ..setJavaScriptMode(JavaScriptMode.unrestricted)
       ..setBackgroundColor(Colors.black)
-      ..setNavigationDelegate(NavigationDelegate(
-        onPageFinished: (_) {
-          if (mounted) setState(() => _isLoading = false);
-        },
-      ))
+      ..setNavigationDelegate(
+        NavigationDelegate(
+          onPageFinished: (_) {
+            if (!mounted) return;
+            setState(() => _isLoading = false);
+          },
+        ),
+      )
       ..loadFlutterAsset(widget.game.htmlAssetPath);
+  }
+
+  void _handleVerticalSwipe(double velocity) {
+    if (velocity < -240 && widget.index < widget.pageCount - 1) {
+      widget.pageController.nextPage(
+        duration: const Duration(milliseconds: 280),
+        curve: Curves.easeOutCubic,
+      );
+    } else if (velocity > 240 && widget.index > 0) {
+      widget.pageController.previousPage(
+        duration: const Duration(milliseconds: 280),
+        curve: Curves.easeOutCubic,
+      );
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     super.build(context);
     final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
+    final views = widget.game.score * 8 + widget.game.likes;
 
-    return Container(
-      color: theme.scaffoldBackgroundColor,
+    return ColoredBox(
+      color: Colors.black,
       child: Column(
         children: [
-          // ─── TOP: Live Game Screen ──────────────────────────────
           Expanded(
-            flex: 74, // reduced from 83 to give more room to bottom
-            child: Container(
-              margin: const EdgeInsets.only(bottom: 8), // zero margin on top, left, right
-              decoration: BoxDecoration(
-                color: Colors.black,
-                borderRadius: const BorderRadius.vertical(bottom: Radius.circular(32)),
-                boxShadow: [
-                  BoxShadow(
-                    color: theme.primaryColor.withValues(alpha: 0.15),
-                    blurRadius: 20,
-                    offset: const Offset(0, 10),
-                  ),
-                ],
-              ),
-              clipBehavior: Clip.antiAlias,
-              child: Stack(
-                children: [
-                  // Always live WebView handling its own touches
-                  Positioned.fill(
-                    child: SafeArea(
-                      bottom: false,
-                      child: WebViewWidget(controller: _controller),
+            flex: 76,
+            child: Stack(
+              fit: StackFit.expand,
+              children: [
+                DecoratedBox(
+                  decoration: const BoxDecoration(color: Colors.black),
+                  child: WebViewWidget(controller: _controller),
+                ),
+                Positioned(
+                  top: 18,
+                  right: 16,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 6,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.black.withValues(alpha: 0.36),
+                      borderRadius: BorderRadius.circular(999),
+                      border: Border.all(
+                        color: Colors.white.withValues(alpha: 0.12),
+                      ),
+                    ),
+                    child: Text(
+                      '${widget.index + 1}/${widget.pageCount}',
+                      style: theme.textTheme.labelSmall?.copyWith(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 0.2,
+                      ),
                     ),
                   ),
-                  if (_isLoading)
-                    const Center(
-                      child: CircularProgressIndicator(color: Colors.white),
+                ),
+                Positioned(
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  height: 72,
+                  child: IgnorePointer(
+                    child: DecoratedBox(
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                          colors: [
+                            Colors.transparent,
+                            Colors.black.withValues(alpha: 0.92),
+                          ],
+                        ),
+                      ),
                     ),
-                ],
-              ),
+                  ),
+                ),
+                if (_isLoading)
+                  const Center(
+                    child: CircularProgressIndicator(color: Colors.white),
+                  ),
+              ],
             ),
           ),
-
-          // ─── BOTTOM: Native Flutter UI ───────────────────────────
-          // Swiping vertically inside this Expanded area will trigger the PageView perfectly
           Expanded(
-            flex: 26, // Increased from 17 to give more room, fixing the 1.2px overflow
+            flex: 24,
             child: GestureDetector(
+              behavior: HitTestBehavior.opaque,
               onVerticalDragEnd: (details) {
-                if (details.primaryVelocity != null) {
-                  if (details.primaryVelocity! < -300) {
-                    widget.pageController.nextPage(
-                      duration: const Duration(milliseconds: 300),
-                      curve: Curves.easeOut,
-                    );
-                  } else if (details.primaryVelocity! > 300) {
-                    widget.pageController.previousPage(
-                      duration: const Duration(milliseconds: 300),
-                      curve: Curves.easeOut,
-                    );
-                  }
+                final velocity = details.primaryVelocity;
+                if (velocity != null) {
+                  _handleVerticalSwipe(velocity);
                 }
               },
               child: Container(
-                color: Colors.transparent, // Required to catch drag events in empty spaces
-                padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                width: double.infinity,
+                padding: const EdgeInsets.fromLTRB(18, 12, 18, 10),
+                decoration: const BoxDecoration(
+                  color: Colors.black,
+                ),
                 child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                  // 1. Stats row in a rounded outlined box
-                  Container(
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                    decoration: BoxDecoration(
-                      color: isDark ? Colors.white.withValues(alpha: 0.05) : theme.primaryColor.withValues(alpha: 0.05),
-                      borderRadius: BorderRadius.circular(24),
-                      border: Border.all(
-                        color: theme.primaryColor.withValues(alpha: 0.3),
-                        width: 1.5,
-                      ),
-                    ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        _StatItem(
-                          icon: Icons.remove_red_eye_rounded,
-                          value: _formatCount(widget.game.score * 5),
-                          color: theme.primaryColor,
+                        _MetricItem(
+                          icon: Icons.remove_red_eye_outlined,
+                          value: _formatMetric(views),
                         ),
-                        _StatItem(
-                          icon: Icons.share_rounded,
-                          value: _formatCount(widget.game.comments + 45), // proxy share count
-                          color: Colors.white,
+                        _MetricItem(
+                          icon: Icons.favorite_border_rounded,
+                          value: _formatMetric(widget.game.likes),
                         ),
-                        _StatItem(
-                          icon: Icons.favorite_rounded,
-                          value: _formatCount(widget.game.likes),
-                          color: Colors.orangeAccent,
+                        _MetricItem(
+                          icon: Icons.chat_bubble_outline_rounded,
+                          value: _formatMetric(widget.game.comments),
                         ),
-                        _StatItem(
-                          icon: Icons.chat_bubble_rounded,
-                          value: _formatCount(widget.game.comments),
-                          color: Colors.white,
+                        IconButton(
+                          onPressed: () {},
+                          style: IconButton.styleFrom(
+                            foregroundColor: Colors.white,
+                            backgroundColor:
+                                Colors.white.withValues(alpha: 0.06),
+                            minimumSize: const Size(42, 42),
+                          ),
+                          icon: const Icon(Icons.share_outlined, size: 20),
                         ),
                       ],
                     ),
-                  ),
-
-                  const SizedBox(height: 16),
-
-                  // 2. Profile Info Row
-                  Row(
-                    children: [
-                      // Avatar with overlay plus icon
-                      SizedBox(
-                        width: 48,
-                        height: 48,
-                        child: Stack(
+                    const SizedBox(height: 14),
+                    Text(
+                      widget.game.title,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 22,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: -0.4,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 12),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Stack(
+                          clipBehavior: Clip.none,
                           children: [
                             Container(
-                              width: 44,
-                              height: 44,
+                              width: 54,
+                              height: 54,
                               decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                color: theme.primaryColor.withValues(alpha: 0.2),
+                                color:
+                                    theme.primaryColor.withValues(alpha: 0.2),
+                                borderRadius: BorderRadius.circular(18),
                                 image: const DecorationImage(
-                                  // Placeholder avatar using an asset or network is ideal, 
-                                  // but we'll use a colorful gradient to simulate it.
-                                  image: NetworkImage('https://picsum.photos/100'),
+                                  image: AssetImage('assets/app/logo.png'),
                                   fit: BoxFit.cover,
                                 ),
                               ),
                             ),
                             Positioned(
-                              bottom: 0,
-                              right: 0,
+                              right: -2,
+                              bottom: -2,
                               child: Container(
-                                padding: const EdgeInsets.all(2),
-                                decoration: const BoxDecoration(
-                                  color: Colors.orangeAccent,
+                                width: 22,
+                                height: 22,
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFF22C55E),
                                   shape: BoxShape.circle,
+                                  border: Border.all(
+                                    color: Colors.black,
+                                    width: 2,
+                                  ),
                                 ),
-                                child: const Icon(Icons.add, size: 12, color: Colors.white),
+                                child: const Icon(
+                                  Icons.add,
+                                  size: 14,
+                                  color: Colors.black,
+                                ),
                               ),
                             ),
                           ],
                         ),
-                      ),
-
-                      const SizedBox(width: 12),
-
-                      // Text Details
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          mainAxisAlignment: MainAxisAlignment.center,
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                widget.creator.name,
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.w800,
+                                ),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                widget.creator.handle,
+                                style: TextStyle(
+                                  color: Colors.white.withValues(alpha: 0.58),
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                widget.game.shortDescription,
+                                style: TextStyle(
+                                  color: Colors.white.withValues(alpha: 0.78),
+                                  fontSize: 13.2,
+                                  height: 1.3,
+                                ),
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Column(
                           children: [
-                            Text(
-                              widget.game.title,
-                              style: theme.textTheme.titleMedium?.copyWith(
-                                fontWeight: FontWeight.w900,
-                                letterSpacing: -0.3,
+                            IconButton(
+                              onPressed: () {},
+                              style: IconButton.styleFrom(
+                                foregroundColor: Colors.white,
+                                backgroundColor: Colors.white.withValues(
+                                  alpha: 0.06,
+                                ),
+                                minimumSize: const Size(42, 42),
                               ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                            const SizedBox(height: 2),
-                            Text(
-                              '@nemos_creator',
-                              style: TextStyle(
-                                color: theme.primaryColor,
-                                fontWeight: FontWeight.w600,
-                                fontSize: 13,
+                              icon: const Icon(
+                                Icons.videocam_outlined,
+                                size: 20,
                               ),
                             ),
-                          ],
-                        ),
-                      ),
-
-                      // Right Action Button (Shuffle/Play)
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                        decoration: BoxDecoration(
-                          color: theme.scaffoldBackgroundColor,
-                          borderRadius: BorderRadius.circular(24),
-                          border: Border.all(color: theme.dividerColor, width: 1.5),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(Icons.shuffle_rounded, size: 18, color: theme.iconTheme.color),
-                            const SizedBox(width: 6),
-                            Text(
-                              '4', // Match the mockup
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                color: theme.textTheme.bodyLarge?.color,
+                            const SizedBox(height: 8),
+                            IconButton(
+                              onPressed: () {},
+                              style: IconButton.styleFrom(
+                                foregroundColor: Colors.white,
+                                backgroundColor: Colors.white.withValues(
+                                  alpha: 0.06,
+                                ),
+                                minimumSize: const Size(42, 42),
                               ),
+                              icon: const Icon(Icons.more_vert, size: 20),
                             ),
                           ],
                         ),
-                      ), // closes Row
-                    ],
-                  ), // closes Column
-                ],
-              ), // closes main Column's children
-            ), // closes Container
-          ), // closes GestureDetector
-        ), // closes Expanded
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
         ],
       ),
     );
   }
-
-  String _formatCount(int n) {
-    if (n >= 1000) return '${(n / 1000).toStringAsFixed(1)}K';
-    return '$n';
-  }
 }
 
-class _StatItem extends StatelessWidget {
-  const _StatItem({
+class _MetricItem extends StatelessWidget {
+  const _MetricItem({
     required this.icon,
     required this.value,
-    required this.color,
   });
 
   final IconData icon;
   final String value;
-  final Color color;
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final fallbackColor = theme.brightness == Brightness.dark ? Colors.white : Colors.black87;
-    // We override color if it's strictly "white" but we are in light theme
-    final finalIconColor = (color == Colors.white && theme.brightness == Brightness.light) ? Colors.black54 : color;
-    
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(icon, size: 20, color: finalIconColor),
+        Icon(icon, color: Colors.white, size: 23),
         const SizedBox(width: 6),
         Text(
           value,
-          style: TextStyle(
-            fontWeight: FontWeight.w800,
-            fontSize: 14,
-            color: fallbackColor,
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 15,
+            fontWeight: FontWeight.w700,
           ),
         ),
       ],
     );
   }
+}
+
+String _formatMetric(int value) {
+  if (value >= 1000000) {
+    final formatted = (value / 1000000).toStringAsFixed(1).replaceAll('.', ',');
+    return '${formatted}m';
+  }
+
+  if (value >= 1000) {
+    final formatted = (value / 1000).toStringAsFixed(1).replaceAll('.', ',');
+    return '${formatted}k';
+  }
+
+  return '$value';
 }

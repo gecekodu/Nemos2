@@ -22,10 +22,10 @@ class HomeTab extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    
+
     // Pick a featured game for the Hero section
     final heroGame = repository.featuredGames.firstWhere(
-      (g) => g.id == 'n1', 
+      (g) => g.id == 'n1',
       orElse: () => repository.featuredGames.first,
     );
 
@@ -37,15 +37,29 @@ class HomeTab extends StatelessWidget {
           title: Row(
             children: [
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                width: 44,
+                height: 44,
                 decoration: BoxDecoration(
-                  color: theme.primaryColor,
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(14),
+                  image: const DecorationImage(
+                    image: AssetImage('assets/app/logo.png'),
+                    fit: BoxFit.cover,
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: theme.primaryColor.withValues(alpha: 0.14),
+                      blurRadius: 14,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
                 ),
-                child: const Text('N', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 18)),
               ),
               const SizedBox(width: 12),
-              const Text('Nemos', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 24, letterSpacing: -1.0)),
+              const Text('Nemos',
+                  style: TextStyle(
+                      fontWeight: FontWeight.w900,
+                      fontSize: 24,
+                      letterSpacing: -1.0)),
             ],
           ),
           backgroundColor: theme.scaffoldBackgroundColor,
@@ -79,10 +93,14 @@ class HomeTab extends StatelessWidget {
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(32),
                       boxShadow: [
-                        BoxShadow(color: theme.primaryColor.withValues(alpha: 0.2), blurRadius: 30, offset: const Offset(0, 15)),
+                        BoxShadow(
+                            color: theme.primaryColor.withValues(alpha: 0.2),
+                            blurRadius: 30,
+                            offset: const Offset(0, 15)),
                       ],
                       image: const DecorationImage(
-                        image: NetworkImage('https://images.unsplash.com/photo-1552820728-8b83bb6b773f?q=80&w=2070&auto=format&fit=crop'), // Placeholder sci-fi/gaming image
+                        image: NetworkImage(
+                            'https://images.unsplash.com/photo-1552820728-8b83bb6b773f?q=80&w=2070&auto=format&fit=crop'), // Placeholder sci-fi/gaming image
                         fit: BoxFit.cover,
                       ),
                     ),
@@ -113,19 +131,34 @@ class HomeTab extends StatelessWidget {
                             mainAxisAlignment: MainAxisAlignment.end,
                             children: [
                               Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                                decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.25), borderRadius: BorderRadius.circular(20)),
-                                child: const Text('Günün Seçimi', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 12)),
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 12, vertical: 6),
+                                decoration: BoxDecoration(
+                                    color: Colors.white.withValues(alpha: 0.25),
+                                    borderRadius: BorderRadius.circular(20)),
+                                child: const Text('Günün Seçimi',
+                                    style: TextStyle(
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.w800,
+                                        fontSize: 12)),
                               ),
                               const SizedBox(height: 12),
                               Text(
-                                heroGame.title, 
-                                style: const TextStyle(color: Colors.white, fontSize: 36, fontWeight: FontWeight.w900, height: 1.1, letterSpacing: -1.0),
+                                heroGame.title,
+                                style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 36,
+                                    fontWeight: FontWeight.w900,
+                                    height: 1.1,
+                                    letterSpacing: -1.0),
                               ),
                               const SizedBox(height: 8),
                               Text(
                                 heroGame.shortDescription,
-                                style: TextStyle(color: Colors.white.withValues(alpha: 0.8), fontSize: 15, fontWeight: FontWeight.w500),
+                                style: TextStyle(
+                                    color: Colors.white.withValues(alpha: 0.8),
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.w500),
                                 maxLines: 2,
                                 overflow: TextOverflow.ellipsis,
                               ),
@@ -142,20 +175,32 @@ class HomeTab extends StatelessWidget {
                 // ─── QUICK STATS ───────────────────────────────────────────
                 Row(
                   children: [
-                    _EpicStatCard(icon: Icons.flash_on_rounded, title: 'Aktif Oyuncu', value: '12K+', color: const Color(0xFFEAB308)),
+                    _EpicStatCard(
+                        icon: Icons.flash_on_rounded,
+                        title: 'Aktif Oyuncu',
+                        value: '12K+',
+                        color: const Color(0xFFEAB308)),
                     const SizedBox(width: 16),
-                    _EpicStatCard(icon: Icons.casino_rounded, title: 'Toplam Oyun', value: '${repository.totalPossibilityCount}', color: const Color(0xFF6366F1)),
+                    _EpicStatCard(
+                        icon: Icons.casino_rounded,
+                        title: 'Toplam Oyun',
+                        value: '${repository.totalPossibilityCount}',
+                        color: const Color(0xFF6366F1)),
                   ],
                 ),
 
                 const SizedBox(height: 36),
-                
+
                 // ─── TRENDING NOW (HORIZONTAL CAROUSEL) ─────────────────────
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text('Şu An Trend', style: theme.textTheme.titleLarge?.copyWith(fontSize: 24, letterSpacing: -0.5)),
-                    IconButton(icon: const Icon(Icons.arrow_forward_rounded), onPressed: () {}),
+                    Text('Şu An Trend',
+                        style: theme.textTheme.titleLarge
+                            ?.copyWith(fontSize: 24, letterSpacing: -0.5)),
+                    IconButton(
+                        icon: const Icon(Icons.arrow_forward_rounded),
+                        onPressed: () {}),
                   ],
                 ),
                 const SizedBox(height: 16),
@@ -173,7 +218,8 @@ class HomeTab extends StatelessWidget {
               scrollDirection: Axis.horizontal,
               itemCount: 6, // Show top 6
               itemBuilder: (context, index) {
-                final game = repository.featuredGames[index + 1]; // Skip the hero game
+                final game =
+                    repository.featuredGames[index + 1]; // Skip the hero game
                 return _HorizontalGameCard(
                   game: game,
                   onTap: () => _openGame(context, game),
@@ -191,7 +237,9 @@ class HomeTab extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 // ─── FRIENDS ACTIVITY ─────────────────────────────────────
-                Text('Arkadaşlarından Haberler', style: theme.textTheme.titleLarge?.copyWith(fontSize: 24, letterSpacing: -0.5)),
+                Text('Arkadaşlarından Haberler',
+                    style: theme.textTheme.titleLarge
+                        ?.copyWith(fontSize: 24, letterSpacing: -0.5)),
                 const SizedBox(height: 16),
                 ...repository.friends.map(
                   (friend) => Container(
@@ -201,16 +249,25 @@ class HomeTab extends StatelessWidget {
                       color: theme.cardColor,
                       borderRadius: BorderRadius.circular(20),
                       border: Border.all(color: theme.dividerColor),
-                      boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 10, offset: const Offset(0, 4))],
+                      boxShadow: [
+                        BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.03),
+                            blurRadius: 10,
+                            offset: const Offset(0, 4))
+                      ],
                     ),
                     child: Row(
                       children: [
                         CircleAvatar(
                           radius: 24,
-                          backgroundColor: theme.primaryColor.withValues(alpha: 0.1),
+                          backgroundColor:
+                              theme.primaryColor.withValues(alpha: 0.1),
                           child: Text(
                             friend.name.substring(0, 1),
-                            style: TextStyle(color: theme.primaryColor, fontWeight: FontWeight.w900, fontSize: 20),
+                            style: TextStyle(
+                                color: theme.primaryColor,
+                                fontWeight: FontWeight.w900,
+                                fontSize: 20),
                           ),
                         ),
                         const SizedBox(width: 16),
@@ -218,23 +275,29 @@ class HomeTab extends StatelessWidget {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text(friend.name, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
+                              Text(friend.name,
+                                  style: const TextStyle(
+                                      fontWeight: FontWeight.w800,
+                                      fontSize: 16)),
                               const SizedBox(height: 4),
                               Text(
-                                friend.status, 
-                                style: TextStyle(color: theme.textTheme.bodyMedium?.color, fontSize: 14),
+                                friend.status,
+                                style: TextStyle(
+                                    color: theme.textTheme.bodyMedium?.color,
+                                    fontSize: 14),
                               ),
                             ],
                           ),
                         ),
-                        Icon(Icons.chevron_right_rounded, color: theme.dividerColor.withValues(alpha: 0.5)),
+                        Icon(Icons.chevron_right_rounded,
+                            color: theme.dividerColor.withValues(alpha: 0.5)),
                       ],
                     ),
                   ),
                 ),
-                
+
                 const SizedBox(height: 32),
-                
+
                 // ─── PROMO BANNER ──────────────────────────────────────────
                 GradientCard(
                   child: Row(
@@ -243,17 +306,30 @@ class HomeTab extends StatelessWidget {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text('Kendi Oyununu Yarat', style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w900, letterSpacing: -0.5)),
+                            Text('Kendi Oyununu Yarat',
+                                style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 20,
+                                    fontWeight: FontWeight.w900,
+                                    letterSpacing: -0.5)),
                             SizedBox(height: 8),
-                            Text('Yapay zeka ile saniyeler içinde benzersiz bir deneyim oluştur.', style: TextStyle(color: Colors.white70, fontSize: 13, height: 1.4)),
+                            Text(
+                                'Yapay zeka ile saniyeler içinde benzersiz bir deneyim oluştur.',
+                                style: TextStyle(
+                                    color: Colors.white70,
+                                    fontSize: 13,
+                                    height: 1.4)),
                           ],
                         ),
                       ),
                       const SizedBox(width: 16),
                       Container(
                         padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.2), shape: BoxShape.circle),
-                        child: const Icon(Icons.auto_awesome_rounded, color: Colors.white, size: 32),
+                        decoration: BoxDecoration(
+                            color: Colors.white.withValues(alpha: 0.2),
+                            shape: BoxShape.circle),
+                        child: const Icon(Icons.auto_awesome_rounded,
+                            color: Colors.white, size: 32),
                       ),
                     ],
                   ),
@@ -289,20 +365,34 @@ class _EpicStatCard extends StatelessWidget {
           color: Theme.of(context).cardColor,
           borderRadius: BorderRadius.circular(24),
           border: Border.all(color: Theme.of(context).dividerColor),
-          boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.02), blurRadius: 10, offset: const Offset(0, 4))],
+          boxShadow: [
+            BoxShadow(
+                color: Colors.black.withValues(alpha: 0.02),
+                blurRadius: 10,
+                offset: const Offset(0, 4))
+          ],
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Container(
               padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(color: color.withValues(alpha: 0.15), shape: BoxShape.circle),
+              decoration: BoxDecoration(
+                  color: color.withValues(alpha: 0.15), shape: BoxShape.circle),
               child: Icon(icon, color: color, size: 24),
             ),
             const SizedBox(height: 16),
-            Text(value, style: const TextStyle(fontSize: 26, fontWeight: FontWeight.w900, letterSpacing: -1.0)),
+            Text(value,
+                style: const TextStyle(
+                    fontSize: 26,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: -1.0)),
             const SizedBox(height: 4),
-            Text(title, style: TextStyle(fontSize: 13, color: Theme.of(context).textTheme.bodyMedium?.color, fontWeight: FontWeight.w600)),
+            Text(title,
+                style: TextStyle(
+                    fontSize: 13,
+                    color: Theme.of(context).textTheme.bodyMedium?.color,
+                    fontWeight: FontWeight.w600)),
           ],
         ),
       ),
@@ -328,11 +418,17 @@ class _HorizontalGameCard extends StatelessWidget {
       [const Color(0xFFF472B6), const Color(0xFF8B5CF6)], // Pink -> Purple
       [const Color(0xFF34D399), const Color(0xFF3B82F6)], // Mint -> Blue
       [const Color(0xFFFBBF24), const Color(0xFFEA580C)], // Yellow -> Orange
-      [const Color(0xFF2DD4BF), const Color(0xFF0F766E)], // Teal 
-      [const Color(0xFFA78BFA), const Color(0xFF4C1D95)], // Light purple -> Dark purple
-      [const Color(0xFF60A5FA), const Color(0xFF1D4ED8)], // Light blue -> Dark blue
+      [const Color(0xFF2DD4BF), const Color(0xFF0F766E)], // Teal
+      [
+        const Color(0xFFA78BFA),
+        const Color(0xFF4C1D95)
+      ], // Light purple -> Dark purple
+      [
+        const Color(0xFF60A5FA),
+        const Color(0xFF1D4ED8)
+      ], // Light blue -> Dark blue
     ];
-    
+
     final gradient = gradients[index % gradients.length];
 
     return GestureDetector(
@@ -344,7 +440,12 @@ class _HorizontalGameCard extends StatelessWidget {
           color: Theme.of(context).cardColor,
           borderRadius: BorderRadius.circular(24),
           border: Border.all(color: Theme.of(context).dividerColor),
-          boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 10, offset: const Offset(0, 4))],
+          boxShadow: [
+            BoxShadow(
+                color: Colors.black.withValues(alpha: 0.04),
+                blurRadius: 10,
+                offset: const Offset(0, 4))
+          ],
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -353,8 +454,12 @@ class _HorizontalGameCard extends StatelessWidget {
             Container(
               height: 120,
               decoration: BoxDecoration(
-                borderRadius: const BorderRadius.vertical(top: Radius.circular(23)),
-                gradient: LinearGradient(colors: gradient, begin: Alignment.topLeft, end: Alignment.bottomRight),
+                borderRadius:
+                    const BorderRadius.vertical(top: Radius.circular(23)),
+                gradient: LinearGradient(
+                    colors: gradient,
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight),
               ),
               child: Stack(
                 children: [
@@ -362,13 +467,21 @@ class _HorizontalGameCard extends StatelessWidget {
                     top: 10,
                     right: 10,
                     child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                      decoration: BoxDecoration(color: Colors.black.withValues(alpha: 0.3), borderRadius: BorderRadius.circular(12)),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                          color: Colors.black.withValues(alpha: 0.3),
+                          borderRadius: BorderRadius.circular(12)),
                       child: Row(
                         children: [
-                          const Icon(Icons.favorite_rounded, color: Colors.white, size: 12),
+                          const Icon(Icons.favorite_rounded,
+                              color: Colors.white, size: 12),
                           const SizedBox(width: 4),
-                          Text('${game.likes}', style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)),
+                          Text('${game.likes}',
+                              style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.bold)),
                         ],
                       ),
                     ),
@@ -384,14 +497,20 @@ class _HorizontalGameCard extends StatelessWidget {
                 children: [
                   Text(
                     game.title,
-                    style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15, letterSpacing: -0.5),
+                    style: const TextStyle(
+                        fontWeight: FontWeight.w800,
+                        fontSize: 15,
+                        letterSpacing: -0.5),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
                   const SizedBox(height: 4),
                   Text(
                     game.tags.first,
-                    style: TextStyle(color: Theme.of(context).primaryColor, fontSize: 12, fontWeight: FontWeight.w700),
+                    style: TextStyle(
+                        color: Theme.of(context).primaryColor,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700),
                   ),
                 ],
               ),

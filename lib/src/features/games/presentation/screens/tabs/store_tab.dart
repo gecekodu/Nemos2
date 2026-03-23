@@ -1,17 +1,14 @@
 import 'package:flutter/widgets.dart';
 
 import '../../../data/mock_game_repository.dart';
-import '../../controllers/builder_controller.dart';
 
-class BuildTab extends StatelessWidget {
-  const BuildTab({
+class StoreTab extends StatelessWidget {
+  const StoreTab({
     required this.repository,
-    required this.controller,
     super.key,
   });
 
   final MockGameRepository repository;
-  final BuilderController controller;
 
   @override
   Widget build(BuildContext context) {
