@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Sky Dash</title>
+  <style>
+    body, html {
+      margin: 0; padding: 0;
+      width: 100%; height: 100%;
+      background-color: #000;
+      overflow: hidden;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      touch-action: none;
+    }
+    canvas { display: block; width: 100%; height: 100%; }
+  </style>
+</head>
+<body>
+  <canvas id="gameCanvas"></canvas>
+  <script>
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+
+    function resize() {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    }
+    window.addEventListener('resize', resize);
+    resize();
+
+    // Game variables
+    let frames = 0;
+    let score = 0;
+    let bestScore = 0;
+    let gameState = 'PLAYING'; // Auto-start as requested
+
+    // Bird
+    const bird = {
+      x: 60,
+      y: canvas.height / 2,
+      radius: 14,
+      velocity: 0,
+      gravity: 0.25,
+      jump: -6,
+      draw() {
+        ctx.save();
+        ctx.translate(this.x, this.y);
+        ctx.rotate(Math.min(Math.max(this.velocity * 0.1, -0.4), 0.5));
+        
+        ctx.beginPath();
+        ctx.arc(0, 0, this.radius, 0, Math.PI * 2);
+        ctx.fillStyle = '#fbbf24'; // amber-400
+        ctx.fill();
+        ctx.shadowBlur = 10;
+        ctx.shadowColor = '#fbbf24';
+        
+        // Eye
+        ctx.beginPath();
+        ctx.arc(6, -4, 3, 0, Math.PI * 2);
+        ctx.fillStyle = '#fff';
+        ctx.fill();
+        ctx.beginPath();
+        ctx.arc(7, -4, 1.5, 0, Math.PI * 2);
+        ctx.fillStyle = '#000';
+        ctx.fill();
+        
+        ctx.restore();
+      },
+      update() {
+        this.velocity += this.gravity;
+        this.y += this.velocity;
+
+        // Floor collision
+        if (this.y + this.radius >= canvas.height - 50) {
+          this.y = canvas.height - 50 - this.radius;
+          gameState = 'GAME_OVER';
+        }
+        // Ceiling
+        if (this.y - this.radius <= 0) {
+          this.y = this.radius;
+          this.velocity = 0;
+        }
+      },
+      flap() {
+        this.velocity = this.jump;
+      }
+    };
+
+    // Pipes
+    const pipes = {
+      array: [],
+      width: 60,
+      gap: 150,
+      speed: 3,
+      draw() {
+        for (let i = 0; i < this.array.length; i++) {
+          let p = this.array[i];
+          
+          ctx.fillStyle = '#10b981'; // emerald-500
+          ctx.shadowBlur = 5;
+          ctx.shadowColor = '#059669';
+          
+          // Top pipe
+          ctx.fillRect(p.x, 0, this.width, p.top);
+          // Bottom pipe
+          ctx.fillRect(p.x, canvas.height - 50 - p.bottom, this.width, p.bottom);
+          
+          ctx.shadowBlur = 0;
+        }
+      },
+      update() {
+        if (frames % 100 === 0) {
+          let minCurrentGap = 120;
+          let maxCurrentGap = 180;
+          let currentGap = Math.random() * (maxCurrentGap - minCurrentGap) + minCurrentGap;
+          
+          let maxPos = canvas.height - 50 - minCurrentGap - 40;
+          let topPosition = Math.floor(Math.random() * (maxPos - 40 + 1) + 40);
+          
+          this.array.push({
+            x: canvas.width,
+            top: topPosition,
+            bottom: canvas.height - 50 - (topPosition + currentGap),
+            passed: false
+          });
+        }
+
+        for (let i = 0; i < this.array.length; i++) {
+          let p = this.array[i];
+          p.x -= this.speed;
+
+          // Collision wrapper
+          let birdBorder = bird.x + bird.radius;
+          let birdTop = bird.y - bird.radius;
+          let birdBottom = bird.y + bird.radius;
+          let birdBack = bird.x - bird.radius;
+
+          if (birdBorder > p.x && birdBack < p.x + this.width) {
+             if (birdTop < p.top || birdBottom > canvas.height - 50 - p.bottom) {
+               gameState = 'GAME_OVER';
+             }
+          }
+
+          // Score
+          if (p.x + this.width < bird.x && !p.passed) {
+             score++;
+             p.passed = true;
+          }
+
+          if (p.x + this.width < 0) {
+            this.array.shift();
+            i--;
+          }
+        }
+      },
+      reset() {
+        this.array = [];
+      }
+    };
+
+    // Background & Floor
+    const bg = {
+      draw() {
+        let grad = ctx.createLinearGradient(0, 0, 0, canvas.height);
+        grad.addColorStop(0, '#0ea5e9'); // sky-500
+        grad.addColorStop(1, '#e0f2fe'); // sky-100
+        ctx.fillStyle = grad;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        
+        ctx.fillStyle = '#22c55e'; // green-500
+        ctx.fillRect(0, canvas.height - 50, canvas.width, 50);
+        ctx.fillStyle = '#15803d'; // green-700
+        ctx.fillRect(0, canvas.height - 50, canvas.width, 8);
+      }
+    };
+
+    // Main loop
+    function loop() {
+      bg.draw();
+
+      if (gameState === 'PLAYING') {
+        pipes.draw();
+        pipes.update();
+        bird.draw();
+        bird.update();
+
+        // UI
+        ctx.fillStyle = '#fff';
+        ctx.font = 'bold 36px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText(score, canvas.width / 2, 80);
+        ctx.lineWidth = 2;
+        ctx.strokeStyle = '#000';
+        ctx.strokeText(score, canvas.width / 2, 80);
+
+        frames++;
+      } else if (gameState === 'GAME_OVER') {
+        pipes.draw();
+        bird.draw();
+        
+        bestScore = Math.max(score, bestScore);
+
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        ctx.fillStyle = '#fff';
+        ctx.textAlign = 'center';
+        ctx.font = 'bold 40px sans-serif';
+        ctx.fillText('OYUN BİTTİ', canvas.width / 2, canvas.height / 2 - 40);
+        
+        ctx.font = '24px sans-serif';
+        ctx.fillText(`Skor: ${score}`, canvas.width / 2, canvas.height / 2 + 10);
+        ctx.fillText(`En İyi: ${bestScore}`, canvas.width / 2, canvas.height / 2 + 40);
+        
+        ctx.font = '18px sans-serif';
+        ctx.fillText('Tekrar oynamak için dokun', canvas.width / 2, canvas.height / 2 + 100);
+      }
+
+      requestAnimationFrame(loop);
+    }
+    
+    // Input
+    function handleInput() {
+      if (gameState === 'PLAYING') {
+        bird.flap();
+      } else if (gameState === 'GAME_OVER') {
+        bird.y = canvas.height / 2;
+        bird.velocity = 0;
+        pipes.reset();
+        score = 0;
+        frames = 0;
+        gameState = 'PLAYING';
+      }
+    }
+
+    document.addEventListener('keydown', (e) => {
+      if (e.code === 'Space') handleInput();
+    });
+    canvas.addEventListener('mousedown', handleInput);
+    canvas.addEventListener('touchstart', handleInput, {passive: false});
+
+    loop();
+  </script>
+</body>
+</html>

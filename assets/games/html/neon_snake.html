@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Neon Snake</title>
+  <style>
+    body, html { margin: 0; padding: 0; width: 100%; height: 100%; background-color: #0b0f19; overflow: hidden; touch-action: none; font-family: monospace; }
+    canvas { display: block; width: 100%; height: 100%; }
+  </style>
+</head>
+<body>
+  <canvas id="gameCanvas"></canvas>
+  <script>
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+
+    let gridSize = 20;
+    let w, h, cols, rows;
+    
+    function resize() {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+      w = canvas.width;
+      h = canvas.height;
+      cols = Math.floor(w / gridSize);
+      rows = Math.floor(h / gridSize);
+    }
+    window.addEventListener('resize', resize);
+    resize();
+
+    let snake = [];
+    let food = {};
+    let dx = 1;
+    let dy = 0;
+    let score = 0;
+    let gameState = 'PLAYING'; // Auto-start
+    let lastTime = 0;
+    let speed = 100; // ms per move
+
+    function initGame() {
+      snake = [
+        {x: Math.floor(cols/2), y: Math.floor(rows/2)},
+        {x: Math.floor(cols/2)-1, y: Math.floor(rows/2)},
+        {x: Math.floor(cols/2)-2, y: Math.floor(rows/2)}
+      ];
+      dx = 1; dy = 0;
+      score = 0;
+      placeFood();
+    }
+
+    function placeFood() {
+      let valid = false;
+      while(!valid) {
+        food = {
+          x: Math.floor(Math.random() * cols),
+          y: Math.floor(Math.random() * rows)
+        };
+        valid = true;
+        for(let s of snake) {
+          if(s.x === food.x && s.y === food.y) valid = false;
+        }
+      }
+    }
+
+    function update(time) {
+      if (gameState === 'PLAYING') {
+        if (time - lastTime > Math.max(speed - score * 2, 40)) {
+          lastTime = time;
+          
+          let head = {x: snake[0].x + dx, y: snake[0].y + dy};
+          
+          // Wrap around
+          if(head.x < 0) head.x = cols - 1;
+          if(head.x >= cols) head.x = 0;
+          if(head.y < 0) head.y = rows - 1;
+          if(head.y >= rows) head.y = 0;
+
+          // Self collision
+          for(let i=0; i<snake.length; i++) {
+            if(head.x === snake[i].x && head.y === snake[i].y) {
+              gameState = 'GAME_OVER';
+              return;
+            }
+          }
+
+          snake.unshift(head);
+          
+          // Eat food
+          if(head.x === food.x && head.y === food.y) {
+            score += 10;
+            placeFood();
+          } else {
+            snake.pop();
+          }
+        }
+      }
+    }
+
+    function draw() {
+      ctx.fillStyle = '#0b0f19';
+      ctx.fillRect(0, 0, w, h);
+
+      if (gameState === 'PLAYING' || gameState === 'GAME_OVER') {
+        // Draw grid
+        ctx.strokeStyle = 'rgba(255,255,255,0.05)';
+        for(let i=0; i<=cols; i++) { ctx.beginPath(); ctx.moveTo(i*gridSize, 0); ctx.lineTo(i*gridSize, h); ctx.stroke(); }
+        for(let i=0; i<=rows; i++) { ctx.beginPath(); ctx.moveTo(0, i*gridSize); ctx.lineTo(w, i*gridSize); ctx.stroke(); }
+
+        // Draw food
+        ctx.shadowBlur = 15;
+        ctx.shadowColor = '#f43f5e';
+        ctx.fillStyle = '#f43f5e';
+        ctx.fillRect(food.x * gridSize + 2, food.y * gridSize + 2, gridSize - 4, gridSize - 4);
+        
+        // Draw snake
+        ctx.shadowColor = '#0ea5e9';
+        for (let i = 0; i < snake.length; i++) {
+          ctx.shadowBlur = i === 0 ? 20 : 10;
+          ctx.fillStyle = i === 0 ? '#38bdf8' : '#0284c7';
+          ctx.fillRect(snake[i].x * gridSize + 1, snake[i].y * gridSize + 1, gridSize - 2, gridSize - 2);
+        }
+        ctx.shadowBlur = 0;
+
+        // Score
+        ctx.fillStyle = '#fff';
+        ctx.font = '24px monospace';
+        ctx.fillText(`Score: ${score}`, 20, 40);
+
+        if (gameState === 'GAME_OVER') {
+          ctx.fillStyle = 'rgba(0,0,0,0.7)';
+          ctx.fillRect(0, 0, w, h);
+          ctx.fillStyle = '#fff';
+          ctx.textAlign = 'center';
+          ctx.font = '36px monospace';
+          ctx.fillText('CRASHED', w/2, h/2);
+          ctx.font = '16px monospace';
+          ctx.fillText('Tap to restart', w/2, h/2 + 40);
+          ctx.textAlign = 'left';
+        }
+      }
+    }
+
+    function loop(time) {
+      update(time);
+      draw();
+      requestAnimationFrame(loop);
+    }
+
+    // Input Handling
+    document.addEventListener('keydown', e => {
+      if(e.key === 'ArrowUp' && dy === 0) { dx = 0; dy = -1; }
+      if(e.key === 'ArrowDown' && dy === 0) { dx = 0; dy = 1; }
+      if(e.key === 'ArrowLeft' && dx === 0) { dx = -1; dy = 0; }
+      if(e.key === 'ArrowRight' && dx === 0) { dx = 1; dy = 0; }
+    });
+
+    let touchX, touchY;
+    document.addEventListener('touchstart', e => {
+      touchX = e.touches[0].clientX;
+      touchY = e.touches[0].clientY;
+      if (gameState === 'GAME_OVER') {
+        initGame();
+        gameState = 'PLAYING';
+      }
+      e.preventDefault();
+    }, {passive: false});
+
+    document.addEventListener('touchmove', e => {
+      e.preventDefault();
+      if(!touchX || !touchY) return;
+      let nx = e.touches[0].clientX;
+      let ny = e.touches[0].clientY;
+      let diffX = nx - touchX;
+      let diffY = ny - touchY;
+      
+      if(Math.abs(diffX) > Math.abs(diffY)) {
+        if(Math.abs(diffX) > 20) {
+          if(diffX > 0 && dx === 0) { dx = 1; dy = 0; }
+          else if(diffX < 0 && dx === 0) { dx = -1; dy = 0; }
+          touchX = null; touchY = null;
+        }
+      } else {
+        if(Math.abs(diffY) > 20) {
+          if(diffY > 0 && dy === 0) { dx = 0; dy = 1; }
+          else if(diffY < 0 && dy === 0) { dx = 0; dy = -1; }
+          touchX = null; touchY = null;
+        }
+      }
+    }, {passive: false});
+
+    initGame();
+    requestAnimationFrame(loop);
+  </script>
+</body>
+</html>

@@ -16,52 +16,52 @@ enum FeedReaction { begeni, favori, ates }
 
 extension GameModeX on GameMode {
   String get label => switch (this) {
-        GameMode.rekabet => 'Rekabet',
-        GameMode.rahat => 'Rahat',
-        GameMode.hikaye => 'Hikâye',
-        GameMode.parti => 'Parti',
-        GameMode.strateji => 'Strateji',
+        GameMode.rekabet => 'Arcade / Aksiyon',
+        GameMode.rahat => 'Bulmaca / Rahat',
+        GameMode.hikaye => 'Macera / Hikâye',
+        GameMode.parti => 'Parti / Eğlence',
+        GameMode.strateji => 'Strateji / Zeka',
       };
 }
 
 extension GameTempoX on GameTempo {
   String get label => switch (this) {
-        GameTempo.hizli => 'Hızlı',
-        GameTempo.orta => 'Orta',
-        GameTempo.uzun => 'Uzun',
-        GameTempo.refleks => 'Refleks',
-        GameTempo.dusunerek => 'Düşünerek',
+        GameTempo.hizli => 'Sürekli Aksiyon',
+        GameTempo.orta => 'Akıcı / Dengeli',
+        GameTempo.uzun => 'Sabır & İhtişam',
+        GameTempo.refleks => 'Anlık Refleks',
+        GameTempo.dusunerek => 'Derin Düşünce',
       };
 }
 
 extension SocialStyleX on SocialStyle {
   String get label => switch (this) {
-        SocialStyle.tekKisilik => 'Tek başıma',
-        SocialStyle.arkadaslarla => 'Arkadaşlarla',
+        SocialStyle.tekKisilik => 'Tek Tabanca',
+        SocialStyle.arkadaslarla => 'Arkadaşlarla Birlikte',
       };
 }
 
 extension WorldThemeX on WorldTheme {
   String get label => switch (this) {
-        WorldTheme.fantastik => 'Fantastik',
-        WorldTheme.bilimKurgu => 'Bilim kurgu',
+        WorldTheme.fantastik => 'Fantastik & Büyülü',
+        WorldTheme.bilimKurgu => 'Siber & Bilim Kurgu',
       };
 }
 
 extension SkillLevelX on SkillLevel {
   String get label => switch (this) {
-        SkillLevel.baslangic => 'Başlangıç',
-        SkillLevel.orta => 'Orta',
-        SkillLevel.uzman => 'Uzman',
+        SkillLevel.baslangic => 'Kolay & Erişilebilir',
+        SkillLevel.orta => 'Orta Seviye',
+        SkillLevel.uzman => 'Zor & Affetmez',
       };
 }
 
 extension SessionLengthX on SessionLength {
   String get label => switch (this) {
-        SessionLength.cokKisa => '5-10 dk',
-        SessionLength.kisa => '10-20 dk',
-        SessionLength.orta => '20-30 dk',
-        SessionLength.uzun => '30+ dk',
+        SessionLength.cokKisa => 'Mini (1-5 dk)',
+        SessionLength.kisa => 'Kısa (5-10 dk)',
+        SessionLength.orta => 'Orta (10-20 dk)',
+        SessionLength.uzun => 'Destansı (20+ dk)',
       };
 }
 

@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Brick Breaker</title>
+  <style>
+    body, html { margin: 0; padding: 0; width: 100%; height: 100%; background: #1e1e24; overflow: hidden; touch-action: none; font-family: sans-serif; }
+    canvas { display: block; width: 100%; height: 100%; }
+  </style>
+</head>
+<body>
+  <canvas id="gameCanvas"></canvas>
+  <script>
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    let w, h;
+    
+    function resize() {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+      w = canvas.width;
+      h = canvas.height;
+    }
+    window.addEventListener('resize', resize);
+    resize();
+
+    let gameState = 'PLAYING';
+    let score = 0;
+    
+    let paddle = { x: 0, w: 100, h: 12, y: 0 };
+    let ball = { x: 0, y: 0, dx: 4, dy: -4, r: 6 };
+    let bricks = [];
+    const colors = ['#f43f5e', '#f97316', '#eab308', '#22c55e', '#0ea5e9', '#a855f7'];
+
+    function init() {
+      score = 0;
+      paddle.y = h - 50;
+      paddle.x = w/2 - paddle.w/2;
+      ball.x = w/2;
+      ball.y = paddle.y - 20;
+      ball.dx = 4 * (Math.random() > 0.5 ? 1 : -1);
+      ball.dy = -4;
+      
+      bricks = [];
+      let cols = Math.floor(w / 60);
+      let rows = 6;
+      let offset = (w - (cols * 55)) / 2;
+      
+      for(let r=0; r<rows; r++) {
+        for(let c=0; c<cols; c++) {
+          bricks.push({
+            x: offset + c * 55,
+            y: 60 + r * 25,
+            w: 50,
+            h: 15,
+            color: colors[r],
+            active: true
+          });
+        }
+      }
+    }
+
+    function update() {
+      if(gameState !== 'PLAYING') return;
+      
+      // Move Ball
+      ball.x += ball.dx;
+      ball.y += ball.dy;
+      
+      // Walls
+      if(ball.x - ball.r < 0 || ball.x + ball.r > w) ball.dx *= -1;
+      if(ball.y - ball.r < 0) ball.dy *= -1;
+      
+      // Bottom (Game Over)
+      if(ball.y + ball.r > h) gameState = 'GAME_OVER';
+      
+      // Paddle
+      if(ball.y + ball.r > paddle.y && ball.x > paddle.x && ball.x < paddle.x + paddle.w) {
+        ball.dy = -Math.abs(ball.dy);
+        let hitPoint = ball.x - (paddle.x + paddle.w/2);
+        ball.dx = hitPoint * 0.15;
+      }
+      
+      // Bricks
+      let activeCount = 0;
+      for(let b of bricks) {
+        if(b.active) {
+          activeCount++;
+          if(ball.x > b.x && ball.x < b.x + b.w && ball.y > b.y && ball.y < b.y + b.h) {
+            b.active = false;
+            ball.dy *= -1;
+            score += 10;
+            // Particles could go here
+            break; // hit one per frame
+          }
+        }
+      }
+      
+      if(activeCount === 0) { // Win
+        init(); // next level
+        ball.dx *= 1.1;
+        ball.dy *= 1.1;
+      }
+    }
+
+    function draw() {
+      ctx.fillStyle = '#1e1e24';
+      ctx.fillRect(0,0,w,h);
+      
+      if(gameState === 'PLAYING' || gameState === 'GAME_OVER') {
+        // Paddle
+        ctx.fillStyle = '#fff';
+        ctx.shadowBlur = 10;
+        ctx.shadowColor = '#fff';
+        ctx.fillRect(paddle.x, paddle.y, paddle.w, paddle.h);
+        
+        // Ball
+        ctx.beginPath();
+        ctx.arc(ball.x, ball.y, ball.r, 0, Math.PI*2);
+        ctx.fill();
+        ctx.shadowBlur = 0;
+        
+        // Bricks
+        for(let b of bricks) {
+          if(b.active) {
+            ctx.fillStyle = b.color;
+            ctx.fillRect(b.x, b.y, b.w, b.h);
+          }
+        }
+        
+        // UI
+        ctx.fillStyle = '#fff';
+        ctx.font = '20px sans-serif';
+        ctx.fillText(`Puan: ${score}`, 20, 30);
+      }
+      
+      if(gameState === 'GAME_OVER') {
+        ctx.fillStyle = 'rgba(0,0,0,0.7)';
+        ctx.fillRect(0,0,w,h);
+        ctx.fillStyle = '#fff';
+        ctx.textAlign = 'center';
+        ctx.font = '40px sans-serif';
+        ctx.fillText('OYUN BİTTİ', w/2, h/2);
+        ctx.font = '20px sans-serif';
+        ctx.fillText('Tekrar oynamak için dokun', w/2, h/2 + 40);
+        ctx.textAlign = 'left';
+      }
+    }
+
+    function loop() {
+      update();
+      draw();
+      requestAnimationFrame(loop);
+    }
+
+    // Input
+    document.addEventListener('mousemove', e => {
+      paddle.x = e.clientX - paddle.w/2;
+    });
+
+    document.addEventListener('touchmove', e => {
+      paddle.x = e.touches[0].clientX - paddle.w/2;
+      e.preventDefault();
+    }, {passive: false});
+
+    document.addEventListener('touchstart', e => {
+      if(gameState === 'GAME_OVER') {
+        init();
+        gameState = 'PLAYING';
+      }
+    });
+
+    init();
+    loop();
+  </script>
+</body>
+</html>

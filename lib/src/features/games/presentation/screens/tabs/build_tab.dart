@@ -144,8 +144,8 @@ class _BuildTabState extends State<BuildTab> {
                 physics: const NeverScrollableScrollPhysics(), // Only programmatic scroll
                 children: [
                   _SelectionPage(
-                    title: 'Ne tür bir deneyim arıyorsun?',
-                    subtitle: 'Oyunun temel mekaniğini seç.',
+                    title: 'Ne tür bir oyun arıyorsun?',
+                    subtitle: 'Oyunun temel türünü belirle.',
                     options: GameMode.values.map((e) => e.label).toList(),
                     selectedIndex: selection.mode?.index,
                     onSelected: (i) {
@@ -154,8 +154,8 @@ class _BuildTabState extends State<BuildTab> {
                     },
                   ),
                   _SelectionPage(
-                    title: 'Oyunun ritmi nasıl olsun?',
-                    subtitle: 'Hız ve tempo belirleyici faktördür.',
+                    title: 'Oyunun mekaniği nasıl olsun?',
+                    subtitle: 'Tepki mi, planlama mı?',
                     options: GameTempo.values.map((e) => e.label).toList(),
                     selectedIndex: selection.tempo?.index,
                     onSelected: (i) {
@@ -164,8 +164,8 @@ class _BuildTabState extends State<BuildTab> {
                     },
                   ),
                   _SelectionPage(
-                    title: 'Nasıl bir sosyal stil?',
-                    subtitle: 'Tek başına mı yoksa arkadaşlarla mı?',
+                    title: 'Peki tarzın nedir?',
+                    subtitle: 'Kimlerle oynamak istersin?',
                     options: SocialStyle.values.map((e) => e.label).toList(),
                     selectedIndex: selection.socialStyle?.index,
                     onSelected: (i) {
@@ -175,7 +175,7 @@ class _BuildTabState extends State<BuildTab> {
                   ),
                   _SelectionPage(
                     title: 'Hangi evrene gidelim?',
-                    subtitle: 'Atmosfer kararını ver.',
+                    subtitle: 'Kurgu ve vizyonu seç.',
                     options: WorldTheme.values.map((e) => e.label).toList(),
                     selectedIndex: selection.theme?.index,
                     onSelected: (i) {
@@ -185,7 +185,7 @@ class _BuildTabState extends State<BuildTab> {
                   ),
                   _SelectionPage(
                     title: 'Zorluk ne seviyede olsun?',
-                    subtitle: 'Ne kadar meydan okuma istiyorsun?',
+                    subtitle: 'Sınırlarını ne kadar zorlamak istiyorsun?',
                     options: SkillLevel.values.map((e) => e.label).toList(),
                     selectedIndex: selection.skillLevel?.index,
                     onSelected: (i) {
@@ -194,8 +194,8 @@ class _BuildTabState extends State<BuildTab> {
                     },
                   ),
                   _SelectionPage(
-                    title: 'Bir oturum ne kadar sürmeli?',
-                    subtitle: 'Kısa bir mola mı, uzun bir macera mı?',
+                    title: 'Ne kadar vaktin var?',
+                    subtitle: 'Oyunda harcayacağın seans süresi.',
                     options: SessionLength.values.map((e) => e.label).toList(),
                     selectedIndex: selection.sessionLength?.index,
                     onSelected: (i) {
