@@ -44,13 +44,12 @@ class _BuildTabState extends State<BuildTab> {
     FocusScope.of(context).unfocus();
     final currentPage = _pageController.page?.toInt() ?? 0;
     
-    if (currentPage < 5) {
+    // 0..5 are selection pages, 6 is the ready screen
+    if (currentPage < 6) {
       _pageController.nextPage(
         duration: const Duration(milliseconds: 400),
         curve: Curves.fastOutSlowIn,
       );
-    } else {
-      _startGeneration();
     }
   }
 
@@ -59,7 +58,13 @@ class _BuildTabState extends State<BuildTab> {
       _isGenerating = true;
     });
     
-    // Fake delay for "Epic Creation" effect
+    // Jump to the loading screen
+    _pageController.nextPage(
+      duration: const Duration(milliseconds: 400),
+      curve: Curves.easeOutExpo,
+    );
+    
+    // Fake delay for AI API processing
     await Future.delayed(const Duration(seconds: 3));
     
     if (mounted) {
@@ -67,10 +72,6 @@ class _BuildTabState extends State<BuildTab> {
         _isGenerating = false;
         _isFinished = true;
       });
-      _pageController.nextPage(
-        duration: const Duration(milliseconds: 600),
-        curve: Curves.easeOutExpo,
-      );
     }
   }
 
@@ -133,7 +134,7 @@ class _BuildTabState extends State<BuildTab> {
                 padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
                 child: _ProgressBar(
                   controller: _pageController,
-                  totalSteps: 6,
+                  totalSteps: 7, // 6 choices + 1 ready page
                 ),
               ),
 
@@ -141,7 +142,7 @@ class _BuildTabState extends State<BuildTab> {
             Expanded(
               child: PageView(
                 controller: _pageController,
-                physics: const NeverScrollableScrollPhysics(), // Only programmatic scroll
+                physics: const NeverScrollableScrollPhysics(), // Programmatic scroll only
                 children: [
                   _SelectionPage(
                     title: 'Ne tür bir oyun arıyorsun?',
@@ -204,7 +205,13 @@ class _BuildTabState extends State<BuildTab> {
                     },
                   ),
                   
-                  // Step 7: Loading or Result
+                  // Step 7: Ready Confirmation Screen
+                  _ReadyScreen(
+                    selection: selection,
+                    onGenerate: _startGeneration,
+                  ),
+
+                  // Step 8: Loading or Result
                   _isGenerating 
                     ? const _LoadingScreen() 
                     : _ResultScreen(
@@ -273,10 +280,10 @@ class _SelectionPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 24),
+    // SingleChildScrollView allows scrolling without overflowing visually
+    return SingleChildScrollView(
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
       child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Text(
@@ -289,7 +296,7 @@ class _SelectionPage extends StatelessWidget {
             subtitle,
             style: const TextStyle(fontSize: 16, color: Colors.grey, fontWeight: FontWeight.w500),
           ),
-          const SizedBox(height: 48),
+          const SizedBox(height: 36),
           ...List.generate(options.length, (index) {
             final isSelected = selectedIndex == index;
             return Padding(
@@ -329,7 +336,53 @@ class _SelectionPage extends StatelessWidget {
               ),
             );
           }),
-          const Spacer(),
+          const SizedBox(height: 24),
+        ],
+      ),
+    );
+  }
+}
+
+class _ReadyScreen extends StatelessWidget {
+  const _ReadyScreen({
+    required this.selection,
+    required this.onGenerate,
+  });
+
+  final BuilderSelection selection;
+  final VoidCallback onGenerate;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.all(24.0),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const Icon(Icons.rocket_launch_rounded, size: 80, color: Color(0xFF6366F1)),
+          const SizedBox(height: 24),
+          const Text(
+            'Seçimlerini Aldık',
+            textAlign: TextAlign.center,
+            style: TextStyle(fontSize: 32, fontWeight: FontWeight.w900),
+          ),
+          const SizedBox(height: 16),
+          const Text(
+            'Bütün verileri işledik.\nTamamen sana özel oyunu oluşturmaya hazırız.',
+            textAlign: TextAlign.center,
+            style: TextStyle(fontSize: 16, color: Colors.grey, height: 1.5),
+          ),
+          const SizedBox(height: 48),
+          FilledButton(
+            onPressed: selection.isComplete ? onGenerate : null,
+            style: FilledButton.styleFrom(
+              padding: const EdgeInsets.symmetric(vertical: 20),
+              backgroundColor: const Color(0xFF6366F1),
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Oyunu Oluştur', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+          ),
         ],
       ),
     );
@@ -356,7 +409,7 @@ class _LoadingScreen extends StatelessWidget {
           ),
           const SizedBox(height: 40),
           const Text(
-            'Evren Yapılandırılıyor...',
+            'Oyunu Oluşturuluyor...',
             style: TextStyle(fontSize: 24, fontWeight: FontWeight.w900),
           ),
           const SizedBox(height: 12),
