@@ -101,7 +101,7 @@ class _MainShellScreenState extends State<MainShellScreen> {
           ),
         ],
       ),
-    ); // closes Scaffold
+    ), // closes Scaffold
     ); // closes PopScope
   }
 }
