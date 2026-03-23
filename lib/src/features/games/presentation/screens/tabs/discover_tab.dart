@@ -30,7 +30,8 @@ class _DiscoverTabState extends State<DiscoverTab> {
     return PageView.builder(
       controller: _pageController,
       scrollDirection: Axis.vertical,
-      // Default PageView physics provides perfect TikTok/Reels snap behavior.
+      // PageScrollPhysics is perfect for full-page snap scrolling (like Reels/TikTok)
+      physics: const PageScrollPhysics(),
       itemCount: widget.repository.featuredGames.length,
       itemBuilder: (context, index) {
         final game = widget.repository.featuredGames[index];
@@ -40,7 +41,7 @@ class _DiscoverTabState extends State<DiscoverTab> {
   }
 }
 
-/// A single game page in the feed: WebView lives always, overlay sits on top.
+/// A single feed page with game on top 70% and native UI on bottom 30%
 class _FeedPage extends StatefulWidget {
   const _FeedPage({required this.game});
 
@@ -54,10 +55,9 @@ class _FeedPageState extends State<_FeedPage>
     with AutomaticKeepAliveClientMixin {
   late final WebViewController _controller;
   bool _isLoading = true;
-  bool _showOverlay = true;
 
   @override
-  bool get wantKeepAlive => true; // Keep WebView alive when swiped away
+  bool get wantKeepAlive => true; // Keep instance alive when swiping back and forth
 
   @override
   void initState() {
@@ -76,204 +76,195 @@ class _FeedPageState extends State<_FeedPage>
   @override
   Widget build(BuildContext context) {
     super.build(context);
-    final media = MediaQuery.of(context);
-    final size = media.size;
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
 
-    return SizedBox.expand(
-      child: Stack(
+    return Container(
+      color: theme.scaffoldBackgroundColor,
+      child: Column(
         children: [
-          // ─── Always-live game WebView ───────────────────────────────────
-          Positioned.fill(
-            child: WebViewWidget(controller: _controller),
-          ),
-
-          if (_isLoading)
-            Container(
-              color: Colors.black,
-              child: const Center(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
+          // ─── TOP: Live Game Screen ──────────────────────────────
+          Expanded(
+            flex: 75, // Takes up ~75% of the height
+            child: SafeArea(
+              bottom: false,
+              child: Container(
+                margin: const EdgeInsets.only(top: 16, left: 16, right: 16, bottom: 8),
+                decoration: BoxDecoration(
+                  color: Colors.black,
+                  borderRadius: BorderRadius.circular(32),
+                  boxShadow: [
+                    BoxShadow(
+                      color: theme.primaryColor.withValues(alpha: 0.15),
+                      blurRadius: 20,
+                      offset: const Offset(0, 10),
+                    ),
+                  ],
+                ),
+                clipBehavior: Clip.antiAlias,
+                child: Stack(
                   children: [
-                    CircularProgressIndicator(color: Colors.white),
-                    SizedBox(height: 16),
-                    Text('Oyun yükleniyor...', style: TextStyle(color: Colors.white70)),
+                    // Always live WebView handling its own touches
+                    Positioned.fill(
+                      child: WebViewWidget(controller: _controller),
+                    ),
+                    if (_isLoading)
+                      const Center(
+                        child: CircularProgressIndicator(color: Colors.white),
+                      ),
                   ],
                 ),
               ),
             ),
+          ),
 
-          // ─── Info overlay (slides up to hide when user wants full screen) ──
-          if (_showOverlay) ...[
-            // Bottom gradient
-            Positioned(
-              left: 0,
-              right: 0,
-              bottom: 0,
-              height: size.height * 0.5,
-              child: IgnorePointer(
-                child: Container(
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
-                      stops: const [0, 0.6, 1],
-                      colors: [
-                        Colors.transparent,
-                        Colors.black.withValues(alpha: 0.55),
-                        Colors.black.withValues(alpha: 0.88),
+          // ─── BOTTOM: Native Flutter UI ───────────────────────────
+          // Swiping vertically inside this Expanded area will trigger the PageView perfectly
+          Expanded(
+            flex: 25, 
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16.0),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  // 1. Stats row in a rounded outlined box
+                  Container(
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    decoration: BoxDecoration(
+                      color: isDark ? Colors.white.withValues(alpha: 0.05) : theme.primaryColor.withValues(alpha: 0.05),
+                      borderRadius: BorderRadius.circular(24),
+                      border: Border.all(
+                        color: theme.primaryColor.withValues(alpha: 0.3),
+                        width: 1.5,
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                      children: [
+                        _StatItem(
+                          icon: Icons.remove_red_eye_rounded,
+                          value: _formatCount(widget.game.score * 5),
+                          color: theme.primaryColor,
+                        ),
+                        _StatItem(
+                          icon: Icons.share_rounded,
+                          value: _formatCount(widget.game.comments + 45), // proxy share count
+                          color: Colors.white,
+                        ),
+                        _StatItem(
+                          icon: Icons.favorite_rounded,
+                          value: _formatCount(widget.game.likes),
+                          color: Colors.orangeAccent,
+                        ),
+                        _StatItem(
+                          icon: Icons.chat_bubble_rounded,
+                          value: _formatCount(widget.game.comments),
+                          color: Colors.white,
+                        ),
                       ],
                     ),
                   ),
-                ),
-              ),
-            ),
 
-            // Top gradient (safe area)
-            Positioned(
-              left: 0,
-              right: 0,
-              top: 0,
-              height: size.height * 0.18,
-              child: IgnorePointer(
-                child: Container(
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
-                      colors: [
-                        Colors.black.withValues(alpha: 0.5),
-                        Colors.transparent,
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            ),
+                  const SizedBox(height: 16),
 
-            // Top bar
-            Positioned(
-              top: media.padding.top + 12,
-              left: 16,
-              right: 16,
-              child: Row(
-                children: [
-                  _TagBadge(label: _modeLabel(widget.game.mode)),
-                  const SizedBox(width: 8),
-                  _TagBadge(label: _sessionLabel(widget.game.sessionLength)),
-                  const Spacer(),
-                  _CircleButton(
-                    icon: Icons.fullscreen,
-                    onTap: () => setState(() => _showOverlay = false),
-                    tooltip: 'Tam ekran',
+                  // 2. Profile Info Row
+                  Row(
+                    children: [
+                      // Avatar with overlay plus icon
+                      SizedBox(
+                        width: 48,
+                        height: 48,
+                        child: Stack(
+                          children: [
+                            Container(
+                              width: 44,
+                              height: 44,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: theme.primaryColor.withValues(alpha: 0.2),
+                                image: const DecorationImage(
+                                  // Placeholder avatar using an asset or network is ideal, 
+                                  // but we'll use a colorful gradient to simulate it.
+                                  image: NetworkImage('https://picsum.photos/100'),
+                                  fit: BoxFit.cover,
+                                ),
+                              ),
+                            ),
+                            Positioned(
+                              bottom: 0,
+                              right: 0,
+                              child: Container(
+                                padding: const EdgeInsets.all(2),
+                                decoration: const BoxDecoration(
+                                  color: Colors.orangeAccent,
+                                  shape: BoxShape.circle,
+                                ),
+                                child: const Icon(Icons.add, size: 12, color: Colors.white),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+
+                      const SizedBox(width: 12),
+
+                      // Text Details
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text(
+                              widget.game.title,
+                              style: theme.textTheme.titleMedium?.copyWith(
+                                fontWeight: FontWeight.w900,
+                                letterSpacing: -0.3,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              '@nemos_creator',
+                              style: TextStyle(
+                                color: theme.primaryColor,
+                                fontWeight: FontWeight.w600,
+                                fontSize: 13,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+
+                      // Right Action Button (Shuffle/Play)
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                        decoration: BoxDecoration(
+                          color: theme.scaffoldBackgroundColor,
+                          borderRadius: BorderRadius.circular(24),
+                          border: Border.all(color: theme.dividerColor, width: 1.5),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.shuffle_rounded, size: 18, color: theme.iconTheme.color),
+                            const SizedBox(width: 6),
+                            Text(
+                              '4', // Match the mockup
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                color: theme.textTheme.bodyLarge?.color,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),
             ),
-
-            // Bottom info + actions
-            Positioned(
-              left: 16,
-              right: 80,
-              bottom: media.padding.bottom + 24,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    widget.game.title,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 26,
-                      fontWeight: FontWeight.w900,
-                      letterSpacing: -0.5,
-                      shadows: [Shadow(color: Colors.black54, blurRadius: 8)],
-                    ),
-                  ),
-                  const SizedBox(height: 6),
-                  Text(
-                    widget.game.shortDescription,
-                    style: TextStyle(
-                      color: Colors.white.withValues(alpha: 0.85),
-                      fontSize: 14,
-                      height: 1.4,
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  Wrap(
-                    spacing: 6,
-                    runSpacing: 6,
-                    children: widget.game.tags
-                        .take(4)
-                        .map((t) => _TagBadge(label: t))
-                        .toList(),
-                  ),
-                ],
-              ),
-            ),
-
-            // Right sidebar actions
-            Positioned(
-              right: 12,
-              bottom: media.padding.bottom + 24,
-              child: Column(
-                children: [
-                  _SideAction(
-                    icon: Icons.favorite_rounded,
-                    label: _formatCount(widget.game.likes),
-                    color: Colors.redAccent,
-                  ),
-                  const SizedBox(height: 20),
-                  _SideAction(
-                    icon: Icons.chat_bubble_rounded,
-                    label: _formatCount(widget.game.comments),
-                    color: Colors.white,
-                  ),
-                  const SizedBox(height: 20),
-                  _SideAction(
-                    icon: Icons.share_rounded,
-                    label: 'Paylaş',
-                    color: Colors.white,
-                  ),
-                  const SizedBox(height: 20),
-                  _SideAction(
-                    icon: Icons.local_fire_department_rounded,
-                    label: _formatCount(widget.game.score),
-                    color: Colors.orangeAccent,
-                  ),
-                ],
-              ),
-            ),
-          ],
-
-          // ─── Full-screen exit button ────────────────────────────────────
-          if (!_showOverlay)
-            Positioned(
-              top: media.padding.top + 12,
-              right: 16,
-              child: _CircleButton(
-                icon: Icons.fullscreen_exit,
-                onTap: () => setState(() => _showOverlay = true),
-                tooltip: 'Çık',
-              ),
-            ),
-
-          // ─── Swipe indicator at top ─────────────────────────────────────
-          if (_showOverlay)
-            Positioned(
-              top: media.padding.top + 14,
-              left: 0,
-              right: 0,
-              child: Center(
-                child: Container(
-                  width: 36,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.5),
-                    borderRadius: BorderRadius.circular(4),
-                  ),
-                ),
-              ),
-            ),
+          ),
         ],
       ),
     );
@@ -283,105 +274,40 @@ class _FeedPageState extends State<_FeedPage>
     if (n >= 1000) return '${(n / 1000).toStringAsFixed(1)}K';
     return '$n';
   }
-
-  String _modeLabel(GameMode mode) => mode.label;
-  String _sessionLabel(SessionLength s) => s.label;
 }
 
-class _TagBadge extends StatelessWidget {
-  const _TagBadge({required this.label});
-
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.18),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.3), width: 0.5),
-      ),
-      child: Text(
-        label,
-        style: const TextStyle(
-          color: Colors.white,
-          fontWeight: FontWeight.w600,
-          fontSize: 12,
-        ),
-      ),
-    );
-  }
-}
-
-class _SideAction extends StatelessWidget {
-  const _SideAction({
+class _StatItem extends StatelessWidget {
+  const _StatItem({
     required this.icon,
-    required this.label,
+    required this.value,
     required this.color,
   });
 
   final IconData icon;
-  final String label;
+  final String value;
   final Color color;
 
   @override
   Widget build(BuildContext context) {
-    return Column(
+    final theme = Theme.of(context);
+    final fallbackColor = theme.brightness == Brightness.dark ? Colors.white : Colors.black87;
+    // We override color if it's strictly "white" but we are in light theme
+    final finalIconColor = (color == Colors.white && theme.brightness == Brightness.light) ? Colors.black54 : color;
+    
+    return Row(
+      mainAxisSize: MainAxisSize.min,
       children: [
-        Container(
-          width: 52,
-          height: 52,
-          decoration: BoxDecoration(
-            color: Colors.black.withValues(alpha: 0.4),
-            shape: BoxShape.circle,
-            border: Border.all(color: Colors.white.withValues(alpha: 0.15)),
-          ),
-          child: Icon(icon, color: color, size: 28),
-        ),
-        const SizedBox(height: 5),
+        Icon(icon, size: 20, color: finalIconColor),
+        const SizedBox(width: 6),
         Text(
-          label,
-          style: const TextStyle(
-            color: Colors.white,
-            fontSize: 12,
-            fontWeight: FontWeight.w600,
-            shadows: [Shadow(color: Colors.black, blurRadius: 4)],
+          value,
+          style: TextStyle(
+            fontWeight: FontWeight.w800,
+            fontSize: 14,
+            color: fallbackColor,
           ),
         ),
       ],
-    );
-  }
-}
-
-class _CircleButton extends StatelessWidget {
-  const _CircleButton({
-    required this.icon,
-    required this.onTap,
-    required this.tooltip,
-  });
-
-  final IconData icon;
-  final VoidCallback onTap;
-  final String tooltip;
-
-  @override
-  Widget build(BuildContext context) {
-    return Tooltip(
-      message: tooltip,
-      child: GestureDetector(
-        onTap: onTap,
-        child: Container(
-          width: 42,
-          height: 42,
-          decoration: BoxDecoration(
-            color: Colors.black.withValues(alpha: 0.45),
-            shape: BoxShape.circle,
-            border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
-          ),
-          child: Icon(icon, color: Colors.white, size: 22),
-        ),
-      ),
     );
   }
 }
