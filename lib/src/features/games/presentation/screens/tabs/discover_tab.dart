@@ -30,8 +30,7 @@ class _DiscoverTabState extends State<DiscoverTab> {
     return PageView.builder(
       controller: _pageController,
       scrollDirection: Axis.vertical,
-      // Stable physics: snapping with dampening so scroll settles on a page
-      physics: const _SnapPageScrollPhysics(),
+      // Default PageView physics provides perfect TikTok/Reels snap behavior.
       itemCount: widget.repository.featuredGames.length,
       itemBuilder: (context, index) {
         final game = widget.repository.featuredGames[index];
@@ -39,23 +38,6 @@ class _DiscoverTabState extends State<DiscoverTab> {
       },
     );
   }
-}
-
-/// Custom physics that keeps PageView stable and snapping cleanly.
-class _SnapPageScrollPhysics extends ScrollPhysics {
-  const _SnapPageScrollPhysics({super.parent});
-
-  @override
-  _SnapPageScrollPhysics applyTo(ScrollPhysics? ancestor) {
-    return _SnapPageScrollPhysics(parent: buildParent(ancestor));
-  }
-
-  @override
-  SpringDescription get spring => const SpringDescription(
-        mass: 80,
-        stiffness: 100,
-        damping: 1.2,
-      );
 }
 
 /// A single game page in the feed: WebView lives always, overlay sits on top.
